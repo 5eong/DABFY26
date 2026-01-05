@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Environments
+.env
+.venv
+env/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp.*
+dashboard.py.tmp.*
+platform_helper.py.tmp.*
+run_clean.py.tmp.*
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Don't include the static exports folder
+dashboard_exports/
+
+# Don't include the analysis script
+analyze_columns.py
