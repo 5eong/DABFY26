@@ -1406,6 +1406,26 @@ with tab4:
                 legendgroup='FY26',
                 hovertemplate=f'{product}<br>%{{y:.1f}}%<extra></extra>'
             ))
+        elif len(fy26_h) > 0 or len(fy26_u) > 0:
+            # Plot individual points if only one exists
+            x_points = []
+            y_points = []
+            if len(fy26_h) > 0:
+                x_points.append(x_heard)
+                y_points.append(fy26_h[0])
+            if len(fy26_u) > 0:
+                x_points.append(x_used)
+                y_points.append(fy26_u[0])
+            fig_yetagon_comparison.add_trace(go.Scatter(
+                x=x_points,
+                y=y_points,
+                mode='markers',
+                name=f'FY26' if i == 0 else '',
+                marker=dict(color='#0f4c3a', size=8),
+                showlegend=(i == 0),
+                legendgroup='FY26',
+                hovertemplate=f'{product}<br>%{{y:.1f}}%<extra></extra>'
+            ))
 
         # FY25 line (Heard Of to Used)
         if len(fy25_h) > 0 and len(fy25_u) > 0:
@@ -1416,6 +1436,26 @@ with tab4:
                 name=f'FY25' if i == 0 else '',
                 line=dict(color='#8fc1e3', width=2, dash='dash'),
                 marker=dict(size=8),
+                showlegend=(i == 0),
+                legendgroup='FY25',
+                hovertemplate=f'{product}<br>%{{y:.1f}}%<extra></extra>'
+            ))
+        elif len(fy25_h) > 0 or len(fy25_u) > 0:
+            # Plot individual points if only one exists (e.g., Po Chat has Heard but not Used in FY25)
+            x_points = []
+            y_points = []
+            if len(fy25_h) > 0:
+                x_points.append(x_heard)
+                y_points.append(fy25_h[0])
+            if len(fy25_u) > 0:
+                x_points.append(x_used)
+                y_points.append(fy25_u[0])
+            fig_yetagon_comparison.add_trace(go.Scatter(
+                x=x_points,
+                y=y_points,
+                mode='markers',
+                name=f'FY25' if i == 0 else '',
+                marker=dict(color='#8fc1e3', size=8),
                 showlegend=(i == 0),
                 legendgroup='FY25',
                 hovertemplate=f'{product}<br>%{{y:.1f}}%<extra></extra>'
@@ -1563,6 +1603,26 @@ with tab4:
                 legendgroup='FY26',
                 hovertemplate=f'{technique}<br>%{{y:.1f}}%<extra></extra>'
             ))
+        elif len(fy26_h) > 0 or len(fy26_u) > 0:
+            # Plot individual points if only one exists
+            x_points = []
+            y_points = []
+            if len(fy26_h) > 0:
+                x_points.append(x_heard)
+                y_points.append(fy26_h[0])
+            if len(fy26_u) > 0:
+                x_points.append(x_used)
+                y_points.append(fy26_u[0])
+            fig_technique_comparison.add_trace(go.Scatter(
+                x=x_points,
+                y=y_points,
+                mode='markers',
+                name=f'FY26' if i == 0 else '',
+                marker=dict(color='#d73027', size=8),
+                showlegend=(i == 0),
+                legendgroup='FY26',
+                hovertemplate=f'{technique}<br>%{{y:.1f}}%<extra></extra>'
+            ))
 
         # FY25 line (Heard Of to Used)
         if len(fy25_h) > 0 and len(fy25_u) > 0:
@@ -1573,6 +1633,26 @@ with tab4:
                 name=f'FY25' if i == 0 else '',
                 line=dict(color='#f39c12', width=2, dash='dash'),
                 marker=dict(size=8),
+                showlegend=(i == 0),
+                legendgroup='FY25',
+                hovertemplate=f'{technique}<br>%{{y:.1f}}%<extra></extra>'
+            ))
+        elif len(fy25_h) > 0 or len(fy25_u) > 0:
+            # Plot individual points if only one exists
+            x_points = []
+            y_points = []
+            if len(fy25_h) > 0:
+                x_points.append(x_heard)
+                y_points.append(fy25_h[0])
+            if len(fy25_u) > 0:
+                x_points.append(x_used)
+                y_points.append(fy25_u[0])
+            fig_technique_comparison.add_trace(go.Scatter(
+                x=x_points,
+                y=y_points,
+                mode='markers',
+                name=f'FY25' if i == 0 else '',
+                marker=dict(color='#f39c12', size=8),
                 showlegend=(i == 0),
                 legendgroup='FY25',
                 hovertemplate=f'{technique}<br>%{{y:.1f}}%<extra></extra>'
