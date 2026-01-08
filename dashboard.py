@@ -973,6 +973,7 @@ with tab4:
     st.markdown('#### Yetagon Products/Services: Awareness vs Usage')
 
     # Q31 and Q33: Yetagon products heard of vs used
+    # Labels match CLEAN_FY26_ANSWER.csv
     q31_labels = {
         'Q31_a': 'Yetagon Irrigation',
         'Q31_b': 'Yetagon EM/Zarmani',
@@ -993,13 +994,13 @@ with tab4:
         'Q33_b': 'Yetagon EM/Zarmani',
         'Q33_c': 'Yetagon Trichoderma/Barhmati',
         'Q33_d': 'Yetagon Tele-agronomy',
-        'Q33_i': 'Yetagon Sun-kissed',
-        'Q33_j': 'Yetagon Fish Amino',
-        'Q33_k': 'Po Chat',
-        'Q33_l': 'Messenger',
-        'Q33_f': 'Digital farm practices',
-        'Q33_g': 'None of the above',
-        'Q33_h': 'Other'
+        'Q33_e': 'Digital farm practices',
+        'Q33_f': 'None of the above',
+        'Q33_g': 'Other',
+        'Q33_h': 'Yetagon Sun-kissed',
+        'Q33_i': 'Yetagon Fish Amino',
+        'Q33_j': 'Po Chat',
+        'Q33_k': 'Messenger'
     }
 
     # Combine data for both heard and used
@@ -1347,8 +1348,8 @@ with tab4:
         'Q33_b': 'Yetagon EM/Zarmani',
         'Q33_c': 'Yetagon Trichoderma',
         'Q33_d': 'Yetagon Tele-agronomy',
-        'Q33_f': 'Digital farm practices',
-        'Q33_k': 'Po Chat'
+        'Q33_e': 'Digital farm practices',
+        'Q33_j': 'Po Chat'
     }
 
     # Calculate percentages for FY25 and FY26 using filtered data
