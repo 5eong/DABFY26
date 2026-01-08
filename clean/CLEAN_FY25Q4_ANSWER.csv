@@ -119,9 +119,9 @@ Q33_a,Q33_Which of the following Yetagon products and services have you used ? (
 Q33_b,Q33_Which of the following Yetagon products and services have you used ? (Please select all that apply.)?,Yetagon EM/Zarmani
 Q33_c,Q33_Which of the following Yetagon products and services have you used ? (Please select all that apply.)?,Yetagon Trichoderma/Barhmati
 Q33_d,Q33_Which of the following Yetagon products and services have you used ? (Please select all that apply.)?,Yetagon Tele-agronomy
-Q33_f,Q33_Which of the following Yetagon products and services have you used ? (Please select all that apply.)?,Digital farm practices
-Q33_g,Q33_Which of the following Yetagon products and services have you used ? (Please select all that apply.)?,None of the above
-Q33_m,Q33_Which of the following Yetagon products and services have you used ? (Please select all that apply.)?,Yetagon On-call Service
+Q33_e,Q33_Which of the following Yetagon products and services have you used ? (Please select all that apply.)?,Digital farm practices
+Q33_f,Q33_Which of the following Yetagon products and services have you used ? (Please select all that apply.)?,None of the above
+Q33_l,Q33_Which of the following Yetagon products and services have you used ? (Please select all that apply.)?,Yetagon On-call Service
 Q33_other_text,"Q33_If other, please specify",
 Q34_a,Have you ever used which technique?,No Burn Rice Farming
 Q34_b,Have you ever used which technique?,Salt Water Seed Selection
