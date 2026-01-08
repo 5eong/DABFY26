@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 from platform_helper import create_platform_analysis
 
 # Page config
@@ -9,11 +10,74 @@ st.set_page_config(page_title='Survey Demographics Dashboard', layout='wide')
 # Load data
 @st.cache_data
 def load_data():
-    df = pd.read_csv('cleaned.csv')
-    questions_df = pd.read_csv('questions.csv')
-    return df, questions_df
+    # Load cleaned FY26 data from /clean folder
+    df_fy26 = pd.read_csv('clean/CLEAN_FY26.csv')
 
-df, questions_df = load_data()
+    # Load cleaned FY25Q4 data from /clean folder (already in wide format with remapped questions)
+    df_fy25 = pd.read_csv('clean/CLEAN_FY25Q4.csv')
+
+    # Load answer mapping
+    questions_df = pd.read_csv('clean/CLEAN_FY26_ANSWER.csv')
+
+    return df_fy26, df_fy25, questions_df
+
+# Helper function to create filter section with cascading township
+def create_filters(df, key_prefix):
+    """Create filter controls with cascading Region -> Township"""
+    col1, col2, col3, col4, col5 = st.columns(5)
+
+    with col1:
+        digital_filter = st.selectbox('Digital/Direct', ['ALL', 'DIGITAL', 'DIRECT'], key=f'{key_prefix}_dd')
+
+    with col2:
+        gender_filter = st.selectbox('Gender', ['All', 'Male', 'Female'], key=f'{key_prefix}_gender')
+
+    with col3:
+        age_filter = st.selectbox('Age Group', ['All', 'Under 20', '20-30', '31-40', '41-50', '51-60', 'Over 60'], key=f'{key_prefix}_age')
+
+    with col4:
+        all_regions = ['All'] + sorted(df['Region'].unique().tolist())
+        region_filter = st.selectbox('Region', all_regions, key=f'{key_prefix}_region')
+
+    with col5:
+        # Cascading Township filter based on Region selection
+        if region_filter != 'All':
+            townships = ['All'] + sorted(df[df['Region'] == region_filter]['Township'].unique().tolist())
+        else:
+            townships = ['All'] + sorted(df['Township'].unique().tolist())
+        township_filter = st.selectbox('Township', townships, key=f'{key_prefix}_township')
+
+    return {
+        'digital': digital_filter,
+        'gender': gender_filter,
+        'age': age_filter,
+        'region': region_filter,
+        'township': township_filter
+    }
+
+# Helper function to apply filters to dataframe
+def apply_filters(df, filters):
+    """Apply filters to dataframe"""
+    df_filtered = df.copy()
+
+    if filters['digital'] != 'ALL':
+        df_filtered = df_filtered[df_filtered['Direct or Digital?'] == filters['digital'].title()]
+
+    if filters['gender'] != 'All' and 'Q03' in df_filtered.columns:
+        df_filtered = df_filtered[df_filtered['Q03'] == filters['gender']]
+
+    if filters['age'] != 'All' and 'Q02' in df_filtered.columns:
+        df_filtered = df_filtered[df_filtered['Q02'] == filters['age']]
+
+    if filters['region'] != 'All':
+        df_filtered = df_filtered[df_filtered['Region'] == filters['region']]
+
+    if filters['township'] != 'All':
+        df_filtered = df_filtered[df_filtered['Township'] == filters['township']]
+
+    return df_filtered
+
+df, df_fy25, questions_df = load_data()
 
 # Title
 st.title('📊 Survey Demographics Dashboard')
@@ -24,38 +88,49 @@ tab1, tab2, tab3, tab4 = st.tabs(['Demographics', 'Digital Behavior & Engagement
 with tab1:
     # Demographics metrics
     st.header('Demographics Overview')
+
+    # Create filters for Demographics
+    demo_filters = create_filters(df, 'demo')
+
+    # Filter data based on selections for Demographics
+    df_demo = apply_filters(df, demo_filters)
+
+    # Display sample size at the top
+    st.markdown(f"**Sample Size: n = {len(df_demo)}**")
+    st.markdown("---")
+
     col1, col2, col3, col4, col5 = st.columns(5)
 
     # Total respondents
-    col1.metric('Total Respondents', len(df))
+    col1.metric('Total Respondents', len(df_demo))
 
     # Direct percentage
-    if 'Direct or Digital?' in df.columns:
-        direct_count = (df['Direct or Digital?'] == 'Direct').sum()
-        direct_pct = (direct_count / len(df) * 100) if len(df) > 0 else 0
+    if 'Direct or Digital?' in df_demo.columns:
+        direct_count = (df_demo['Direct or Digital?'] == 'Direct').sum()
+        direct_pct = (direct_count / len(df_demo) * 100) if len(df_demo) > 0 else 0
         col2.metric('Direct', f"{direct_pct:.1f}%")
     else:
         col2.metric('Direct', 'N/A')
 
     # Male percentage
-    if 'Q03' in df.columns:
-        male_count = (df['Q03'] == 'Male').sum()
-        male_pct = (male_count / len(df) * 100) if len(df) > 0 else 0
+    if 'Q03' in df_demo.columns:
+        male_count = (df_demo['Q03'] == 'Male').sum()
+        male_pct = (male_count / len(df_demo) * 100) if len(df_demo) > 0 else 0
         col3.metric('Male', f"{male_pct:.1f}%")
     else:
         col3.metric('Male', 'N/A')
 
     # Heard of Po Chat percentage
-    if 'Q31_g' in df.columns:
-        po_chat_count = (df['Q31_g'] == 1.0).sum()
-        po_chat_pct = (po_chat_count / len(df) * 100) if len(df) > 0 else 0
+    if 'Q31_g' in df_demo.columns:
+        po_chat_count = (df_demo['Q31_g'] == 1.0).sum()
+        po_chat_pct = (po_chat_count / len(df_demo) * 100) if len(df_demo) > 0 else 0
         col4.metric('Heard Po Chat', f"{po_chat_pct:.1f}%")
     else:
         col4.metric('Heard Po Chat', 'N/A')
 
     # Average NPS Score
-    if 'Q40' in df.columns:
-        nps_avg = df['Q40'].mean()
+    if 'Q40' in df_demo.columns:
+        nps_avg = df_demo['Q40'].mean()
         col5.metric('Avg NPS Score', f"{nps_avg:.2f}")
     else:
         col5.metric('Avg NPS Score', 'N/A')
@@ -65,7 +140,7 @@ with tab1:
 
     with demo_col1:
         st.subheader('Regional Distribution')
-        region_counts = df['Region'].value_counts().reset_index()
+        region_counts = df_demo['Region'].value_counts().reset_index()
         region_counts.columns = ['Region', 'Count']
 
         fig_region = px.pie(
@@ -80,8 +155,8 @@ with tab1:
 
     with demo_col2:
         st.subheader('Age Distribution')
-        if 'Q02' in df.columns:
-            age_counts = df['Q02'].value_counts().reset_index()
+        if 'Q02' in df_demo.columns:
+            age_counts = df_demo['Q02'].value_counts().reset_index()
             age_counts.columns = ['Age Group', 'Count']
             # Sort by age order
             age_order = ['Under 20', '20-30', '31-40', '41-50', '51-60', 'Over 60']
@@ -98,7 +173,11 @@ with tab1:
                 color_continuous_scale='Oranges'
             )
             fig_age.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
-            fig_age.update_layout(showlegend=False, xaxis_title='', yaxis_title='')
+            fig_age.update_layout(
+                showlegend=False,
+                xaxis_title='',
+                yaxis_title=''
+            )
             st.plotly_chart(fig_age, use_container_width=True, key='age_bar_chart')
 
     # Second row: Sources of Farming Information and Mobile Top-up Amount
@@ -116,10 +195,10 @@ with tab1:
         }
 
         # Prepare data for UpSet plot
-        q09_cols = [col for col in q09_labels.keys() if col in df.columns]
+        q09_cols = [col for col in q09_labels.keys() if col in df_demo.columns]
 
         # Create a DataFrame for upset plot - need to convert to boolean
-        upset_data = df[q09_cols].copy()
+        upset_data = df_demo[q09_cols].copy()
         upset_data = upset_data.fillna(0)
         upset_data = (upset_data == 1.0)
 
@@ -150,7 +229,7 @@ with tab1:
         combo_percentages = []
         matrix_data = {col: [] for col in upset_data.columns}
 
-        total_respondents = len(df)
+        total_respondents = len(df_demo)
 
         for combo, count in top_combos:
             combo_labels.append(' & '.join(combo) if len(combo) <= 2 else f"{len(combo)} sources")
@@ -267,8 +346,8 @@ with tab1:
 
     with demo_col4:
         st.subheader('Mobile Top-up Amount per Week')
-        if 'Q29' in df.columns:
-            q29_counts = df['Q29'].value_counts().reset_index()
+        if 'Q29' in df_demo.columns:
+            q29_counts = df_demo['Q29'].value_counts().reset_index()
             q29_counts.columns = ['Top-up Amount', 'Count']
 
             # Standardize labels
@@ -313,7 +392,7 @@ with tab1:
     }
 
     # Filter to only crops that exist in the data
-    available_crops = {col: label for col, label in q06_labels.items() if col in df.columns}
+    available_crops = {col: label for col, label in q06_labels.items() if col in df_demo.columns}
 
     if len(available_crops) > 0:
         # Create co-occurrence matrix
@@ -322,18 +401,18 @@ with tab1:
 
         # Initialize matrix
         import numpy as np
-        total_respondents = len(df)
+        total_respondents = len(df_demo)
         cooccurrence_matrix = np.zeros((len(crop_cols), len(crop_cols)))
 
         for i, crop1 in enumerate(crop_cols):
             for j, crop2 in enumerate(crop_cols):
                 if i == j:
                     # Diagonal: percentage of farmers growing this crop
-                    count = (df[crop1] == 1.0).sum()
+                    count = (df_demo[crop1] == 1.0).sum()
                     cooccurrence_matrix[i, j] = (count / total_respondents * 100) if total_respondents > 0 else 0
                 elif i > j:
                     # Lower diagonal: percentage of farmers growing both crops
-                    count = ((df[crop1] == 1.0) & (df[crop2] == 1.0)).sum()
+                    count = ((df_demo[crop1] == 1.0) & (df_demo[crop2] == 1.0)).sum()
                     cooccurrence_matrix[i, j] = (count / total_respondents * 100) if total_respondents > 0 else 0
                 else:
                     # Upper diagonal: set to NaN (will appear white)
@@ -361,6 +440,16 @@ with tab1:
 with tab2:
     st.header('Digital Behavior & Engagement')
 
+    # Create filters for Digital Behavior & Engagement
+    tab2_filters = create_filters(df, 'tab2')
+
+    # Filter data based on selections for Tab2
+    df_tab2 = apply_filters(df, tab2_filters)
+
+    # Display sample size at the top
+    st.markdown(f"**Sample Size: n = {len(df_tab2)}**")
+    st.markdown("---")
+
     # First row: Phone sharing and Social Media Channels
     col1, col2 = st.columns(2)
 
@@ -377,8 +466,8 @@ with tab2:
         }
         q07_data = []
         for col_name, label in q07_labels.items():
-            if col_name in df.columns:
-                count = (df[col_name] == 1.0).sum()
+            if col_name in df_tab2.columns:
+                count = (df_tab2[col_name] == 1.0).sum()
                 q07_data.append({'Category': label, 'Count': count})
 
         q07_df = pd.DataFrame(q07_data)
@@ -407,10 +496,10 @@ with tab2:
         }
 
         # Prepare data for UpSet plot
-        q10_cols = [col for col in q10_labels.keys() if col in df.columns]
+        q10_cols = [col for col in q10_labels.keys() if col in df_tab2.columns]
 
         # Create a DataFrame for upset plot - need to convert to boolean
-        upset_q10_data = df[q10_cols].copy()
+        upset_q10_data = df_tab2[q10_cols].copy()
         upset_q10_data = upset_q10_data.fillna(0)
         upset_q10_data = (upset_q10_data == 1.0)
 
@@ -441,7 +530,7 @@ with tab2:
         q10_combo_percentages = []
         q10_matrix_data = {col: [] for col in upset_q10_data.columns}
 
-        total_respondents = len(df)
+        total_respondents = len(df_tab2)
 
         for combo, count in q10_top_combos:
             q10_combo_labels.append(' & '.join(combo) if len(combo) <= 2 else f"{len(combo)} channels")
@@ -575,9 +664,9 @@ with tab2:
         time_order = ['Morning', 'Afternoon', 'Evening', 'Night']
 
         for col_name, label in q11_labels.items():
-            if col_name in df.columns:
-                count = (df[col_name] == 1.0).sum()
-                pct = (count / len(df) * 100) if len(df) > 0 else 0
+            if col_name in df_tab2.columns:
+                count = (df_tab2[col_name] == 1.0).sum()
+                pct = (count / len(df_tab2) * 100) if len(df_tab2) > 0 else 0
                 q11_data.append({
                     'Time of Day': label,
                     'Count': count,
@@ -641,8 +730,8 @@ with tab2:
     with col4:
         # Q28: Hours per day
         st.subheader('Hours per day')
-        if 'Q28' in df.columns:
-            q28_counts = df['Q28'].value_counts().reset_index()
+        if 'Q28' in df_tab2.columns:
+            q28_counts = df_tab2['Q28'].value_counts().reset_index()
             q28_counts.columns = ['Hours', 'Count']
 
             fig_q28 = px.pie(
@@ -658,8 +747,8 @@ with tab2:
     # Third row: Level of poor connection and Where they heard about Yetagon
     st.subheader('Level of poor connection')
 
-    if 'Q27' in df.columns:
-        q27_counts = df['Q27'].value_counts().reset_index()
+    if 'Q27' in df_tab2.columns:
+        q27_counts = df_tab2['Q27'].value_counts().reset_index()
         q27_counts.columns = ['Connection Level', 'Count']
 
         # Capitalize first letter and add line breaks for better display
@@ -710,6 +799,16 @@ with tab2:
 with tab3:
     st.header('Internet Usage Behaviors')
 
+    # Create filters for Internet Usage Behaviors
+    tab3_filters = create_filters(df, 'tab3')
+
+    # Filter data based on selections for Tab3
+    df_tab3 = apply_filters(df, tab3_filters)
+
+    # Display sample size at the top
+    st.markdown(f"**Sample Size: n = {len(df_tab3)}**")
+    st.markdown("---")
+
     # Create sub-tabs for each platform
     platform_tabs = st.tabs(['Facebook', 'TikTok', 'Viber', 'YouTube'])
 
@@ -723,7 +822,7 @@ with tab3:
         }
 
         create_platform_analysis(
-            df=df,
+            df=df_tab3,
             platform_name='Facebook',
             platform_key='fb',
             platform_col='Q10_a',
@@ -736,7 +835,7 @@ with tab3:
     # TikTok Tab
     with platform_tabs[1]:
         create_platform_analysis(
-            df=df,
+            df=df_tab3,
             platform_name='TikTok',
             platform_key='tt',
             platform_col='Q10_c',
@@ -748,7 +847,7 @@ with tab3:
     # Viber Tab
     with platform_tabs[2]:
         create_platform_analysis(
-            df=df,
+            df=df_tab3,
             platform_name='Viber',
             platform_key='vb',
             platform_col='Q10_d',
@@ -760,7 +859,7 @@ with tab3:
     # YouTube Tab
     with platform_tabs[3]:
         create_platform_analysis(
-            df=df,
+            df=df_tab3,
             platform_name='YouTube',
             platform_key='yt',
             platform_col='Q10_b',
@@ -772,39 +871,18 @@ with tab3:
 with tab4:
     st.header('Brand & Product Awareness')
 
+    # Create filters for Brand & Product Awareness (applies to all subsections)
+    tab4_filters = create_filters(df, 'tab4')
+
+    # Filter data based on selections
+    brand_filtered = apply_filters(df, tab4_filters)
+
+    # Display sample size at the top
+    st.markdown(f"**Sample Size: n = {len(brand_filtered)}**")
+    st.markdown("---")
+
     # Brand Awareness Section
     st.subheader('Brand Awareness')
-
-    # Create filters for Brand Awareness
-    brand_filter_col1, brand_filter_col2, brand_filter_col3, brand_filter_col4 = st.columns(4)
-
-    with brand_filter_col1:
-        digital_filter_brand = st.selectbox('Digital/Direct', ['ALL', 'DIGITAL', 'DIRECT'], key='brand_dd')
-
-    with brand_filter_col2:
-        gender_filter_brand = st.selectbox('Gender', ['All', 'Male', 'Female'], key='brand_gender')
-
-    with brand_filter_col3:
-        age_filter_brand = st.selectbox('Age Group', ['All', 'Under 20', '20-30', '31-40', '41-50', '51-60', 'Over 60'], key='brand_age')
-
-    with brand_filter_col4:
-        all_regions_brand = ['All'] + sorted(df['Region'].unique().tolist())
-        region_filter_brand = st.selectbox('Region', all_regions_brand, key='brand_region')
-
-    # Filter data based on selections for Brand Awareness
-    brand_filtered = df.copy()
-
-    if digital_filter_brand != 'ALL':
-        brand_filtered = brand_filtered[brand_filtered['Direct or Digital?'] == digital_filter_brand.title()]
-
-    if gender_filter_brand != 'All' and 'Q03' in brand_filtered.columns:
-        brand_filtered = brand_filtered[brand_filtered['Q03'] == gender_filter_brand]
-
-    if age_filter_brand != 'All' and 'Q02' in brand_filtered.columns:
-        brand_filtered = brand_filtered[brand_filtered['Q02'] == age_filter_brand]
-
-    if region_filter_brand != 'All':
-        brand_filtered = brand_filtered[brand_filtered['Region'] == region_filter_brand]
 
     # Combined Agricultural Brands: Heard vs Used
     st.markdown('#### Agricultural Brands: Awareness vs Usage')
@@ -888,36 +966,8 @@ with tab4:
     # Product Awareness Section
     st.subheader('Product Awareness')
 
-    # Create filters for Product Awareness
-    prod_filter_col1, prod_filter_col2, prod_filter_col3, prod_filter_col4 = st.columns(4)
-
-    with prod_filter_col1:
-        digital_filter_prod = st.selectbox('Digital/Direct', ['ALL', 'DIGITAL', 'DIRECT'], key='prod_dd')
-
-    with prod_filter_col2:
-        gender_filter_prod = st.selectbox('Gender', ['All', 'Male', 'Female'], key='prod_gender')
-
-    with prod_filter_col3:
-        age_filter_prod = st.selectbox('Age Group', ['All', 'Under 20', '20-30', '31-40', '41-50', '51-60', 'Over 60'], key='prod_age')
-
-    with prod_filter_col4:
-        all_regions_prod = ['All'] + sorted(df['Region'].unique().tolist())
-        region_filter_prod = st.selectbox('Region', all_regions_prod, key='prod_region')
-
-    # Filter data based on selections
-    prod_filtered = df.copy()
-
-    if digital_filter_prod != 'ALL':
-        prod_filtered = prod_filtered[prod_filtered['Direct or Digital?'] == digital_filter_prod.title()]
-
-    if gender_filter_prod != 'All' and 'Q03' in prod_filtered.columns:
-        prod_filtered = prod_filtered[prod_filtered['Q03'] == gender_filter_prod]
-
-    if age_filter_prod != 'All' and 'Q02' in prod_filtered.columns:
-        prod_filtered = prod_filtered[prod_filtered['Q02'] == age_filter_prod]
-
-    if region_filter_prod != 'All':
-        prod_filtered = prod_filtered[prod_filtered['Region'] == region_filter_prod]
+    # Use the same filtered data from tab4_filters
+    prod_filtered = brand_filtered
 
     # Combined Yetagon Products: Heard vs Used
     st.markdown('#### Yetagon Products/Services: Awareness vs Usage')
@@ -933,6 +983,7 @@ with tab4:
         'Q31_g': 'Po Chat',
         'Q31_h': 'Messenger',
         'Q31_i': 'Digital farm practices',
+        'Q31_j': 'None of the above',
         'Q31_k': 'EM',
         'Q31_l': 'Other'
     }
@@ -947,6 +998,7 @@ with tab4:
         'Q33_k': 'Po Chat',
         'Q33_l': 'Messenger',
         'Q33_f': 'Digital farm practices',
+        'Q33_g': 'None of the above',
         'Q33_h': 'Other'
     }
 
@@ -1071,6 +1123,519 @@ with tab4:
         xaxis={'tickangle': -45}
     )
     st.plotly_chart(fig_combined_techniques, use_container_width=True, key='combined_techniques_chart')
+
+    st.markdown('---')
+
+    # Digital Products Analysis Section
+    st.subheader('Digital Products Analysis')
+    st.caption('Note: Any technique (Q32/Q34), Po Chat (Q31_g), Messenger (Q31_h), Digital farm practices (Q31_i); FY25 does not have a "Used" category for Po Chat (Q33_k does not exist in FY25 survey) or Messenger (Q31_k and Q33_k does not exist in FY25 survey)')
+
+    # Define digital product columns
+    # Heard of: Any Q32 technique OR Q31_g OR Q31_h OR Q31_i
+    q32_heard_cols = [f'Q32_{chr(97+i)}' for i in range(11)]  # Q32_a through Q32_k
+    digital_heard_cols = q32_heard_cols + ['Q31_g', 'Q31_h', 'Q31_i']
+
+    # Used: Any Q34 technique OR Q33_k (Po Chat used) OR Q33_l (Messenger used) OR Q33_f (Digital farm practices used)
+    q34_used_cols = [f'Q34_{chr(97+i)}' for i in range(11)]  # Q34_a through Q34_k
+    digital_used_cols = q34_used_cols + ['Q33_k', 'Q33_l', 'Q33_f']
+
+    # Create two columns for side-by-side display
+    digital_col1, digital_col2 = st.columns(2)
+
+    with digital_col1:
+        st.markdown('#### Current Analysis')
+
+        # Calculate number of digital products heard of per person
+        heard_digital = prod_filtered.copy()
+        heard_digital['Heard_Count'] = 0
+        for col in digital_heard_cols:
+            if col in heard_digital.columns:
+                heard_digital['Heard_Count'] = heard_digital['Heard_Count'] + heard_digital[col].fillna(0).astype(int)
+
+        # Calculate number of digital products used per person
+        used_digital = prod_filtered.copy()
+        used_digital['Used_Count'] = 0
+        for col in digital_used_cols:
+            if col in used_digital.columns:
+                used_digital['Used_Count'] = used_digital['Used_Count'] + used_digital[col].fillna(0).astype(int)
+
+        # Count distribution for Heard Of
+        heard_dist = heard_digital['Heard_Count'].value_counts().sort_index()
+        heard_1 = heard_dist.get(1, 0)
+        heard_2 = heard_dist.get(2, 0)
+        heard_3 = heard_dist.get(3, 0)
+        heard_4plus = sum(heard_dist.get(i, 0) for i in range(4, 20))  # 4 or more
+
+        # Count distribution for Used
+        used_dist = used_digital['Used_Count'].value_counts().sort_index()
+        used_1 = used_dist.get(1, 0)
+        used_2 = used_dist.get(2, 0)
+        used_3 = used_dist.get(3, 0)
+        used_4plus = sum(used_dist.get(i, 0) for i in range(4, 20))  # 4 or more
+
+        total = len(prod_filtered)
+
+        # Create stacked bar chart data
+        digital_products_data = pd.DataFrame({
+            'Category': ['Heard Of', 'Used'],
+            '1 Product': [heard_1/total*100 if total > 0 else 0, used_1/total*100 if total > 0 else 0],
+            '2 Products': [heard_2/total*100 if total > 0 else 0, used_2/total*100 if total > 0 else 0],
+            '3 Products': [heard_3/total*100 if total > 0 else 0, used_3/total*100 if total > 0 else 0],
+            '4+ Products': [heard_4plus/total*100 if total > 0 else 0, used_4plus/total*100 if total > 0 else 0]
+        })
+
+        # Create stacked bar chart
+        fig_digital_products = go.Figure()
+
+        colors = ['#e8f4f1', '#5a8f7b', '#0f4c3a', '#073d2a']  # Light to dark green
+
+        for i, product_count in enumerate(['1 Product', '2 Products', '3 Products', '4+ Products']):
+            fig_digital_products.add_trace(go.Bar(
+                name=product_count,
+                x=digital_products_data['Category'],
+                y=digital_products_data[product_count],
+                marker_color=colors[i],
+                text=[f'{val:.1f}%' if val > 0 else '' for val in digital_products_data[product_count]],
+                textposition='inside',
+                hovertemplate='%{x}<br>' + product_count + ': %{y:.1f}%<extra></extra>'
+            ))
+
+        fig_digital_products.update_layout(
+            barmode='stack',
+            xaxis_title='',
+            yaxis_title='Percentage (%)',
+            height=500,
+            showlegend=True,
+            legend=dict(
+                orientation='h',
+                yanchor='bottom',
+                y=1.02,
+                xanchor='right',
+                x=1
+            )
+        )
+        st.plotly_chart(fig_digital_products, use_container_width=True, key='digital_products_chart')
+
+    with digital_col2:
+        st.markdown('#### FY25 vs FY26 Comparison')
+
+        # Apply the same filters to FY25 data if not already done
+        if 'fy25_filtered' not in locals():
+            fy25_filtered = apply_filters(df_fy25, tab4_filters)
+
+        # Calculate Digital Products for FY26
+        # Heard Of
+        fy26_digital_heard = prod_filtered.copy()
+        fy26_digital_heard['Digital_Heard'] = False
+        for col in digital_heard_cols:
+            if col in fy26_digital_heard.columns:
+                fy26_digital_heard['Digital_Heard'] = fy26_digital_heard['Digital_Heard'] | (fy26_digital_heard[col] == 1.0)
+        fy26_heard_pct = (fy26_digital_heard['Digital_Heard'].sum() / len(fy26_digital_heard) * 100) if len(fy26_digital_heard) > 0 else 0
+
+        # Used
+        fy26_digital_used = prod_filtered.copy()
+        fy26_digital_used['Digital_Used'] = False
+        for col in digital_used_cols:
+            if col in fy26_digital_used.columns:
+                fy26_digital_used['Digital_Used'] = fy26_digital_used['Digital_Used'] | (fy26_digital_used[col] == 1.0)
+        fy26_used_pct = (fy26_digital_used['Digital_Used'].sum() / len(fy26_digital_used) * 100) if len(fy26_digital_used) > 0 else 0
+
+        # Calculate Digital Products for FY25
+        # Heard Of
+        fy25_digital_heard = fy25_filtered.copy()
+        fy25_digital_heard['Digital_Heard'] = False
+        for col in digital_heard_cols:
+            if col in fy25_digital_heard.columns:
+                fy25_digital_heard['Digital_Heard'] = fy25_digital_heard['Digital_Heard'] | (fy25_digital_heard[col] == 1.0)
+        fy25_heard_pct = (fy25_digital_heard['Digital_Heard'].sum() / len(fy25_digital_heard) * 100) if len(fy25_digital_heard) > 0 else 0
+
+        # Used
+        fy25_digital_used = fy25_filtered.copy()
+        fy25_digital_used['Digital_Used'] = False
+        for col in digital_used_cols:
+            if col in fy25_digital_used.columns:
+                fy25_digital_used['Digital_Used'] = fy25_digital_used['Digital_Used'] | (fy25_digital_used[col] == 1.0)
+        fy25_used_pct = (fy25_digital_used['Digital_Used'].sum() / len(fy25_digital_used) * 100) if len(fy25_digital_used) > 0 else 0
+
+        # Create slope chart for Digital Products
+        fig_digital_yoy = go.Figure()
+
+        # FY26 line (Heard Of to Used)
+        fig_digital_yoy.add_trace(go.Scatter(
+            x=[0, 1],
+            y=[fy26_heard_pct, fy26_used_pct],
+            mode='lines+markers',
+            name='FY26',
+            line=dict(color='#0f4c3a', width=3),
+            marker=dict(size=12),
+            hovertemplate='FY26<br>%{y:.1f}%<extra></extra>'
+        ))
+
+        # FY25 line (Heard Of to Used)
+        fig_digital_yoy.add_trace(go.Scatter(
+            x=[0, 1],
+            y=[fy25_heard_pct, fy25_used_pct],
+            mode='lines+markers',
+            name='FY25',
+            line=dict(color='#8fc1e3', width=3, dash='dash'),
+            marker=dict(size=12),
+            hovertemplate='FY25<br>%{y:.1f}%<extra></extra>'
+        ))
+
+        fig_digital_yoy.update_layout(
+            xaxis=dict(
+                tickmode='array',
+                tickvals=[0, 1],
+                ticktext=['Heard Of', 'Used'],
+                showgrid=True
+            ),
+            yaxis=dict(
+                title='Percentage (%)',
+                showgrid=True,
+                gridcolor='#e0e0e0'
+            ),
+            height=500,
+            hovermode='closest',
+            showlegend=True,
+            legend=dict(
+                orientation='h',
+                yanchor='bottom',
+                y=1.02,
+                xanchor='right',
+                x=1
+            )
+        )
+
+        st.plotly_chart(fig_digital_yoy, use_container_width=True, key='digital_products_yoy')
+
+    st.markdown('---')
+
+    # FY25 vs FY26 Comparison Section
+    st.subheader('Year-over-Year Comparison: FY25 vs FY26')
+
+    # Apply the same filters to FY25 data
+    fy25_filtered = apply_filters(df_fy25, tab4_filters)
+
+    # Helper function to calculate percentages for a given year
+    def calculate_year_percentages(df_year, question_cols, label_map):
+        """Calculate percentages for heard/used questions across products"""
+        results = []
+        total = len(df_year)
+
+        for col_name, label in label_map.items():
+            if col_name in df_year.columns:
+                count = (df_year[col_name] == 1.0).sum()
+                pct = (count / total * 100) if total > 0 else 0
+                results.append({'Product': label, 'Percentage': pct})
+
+        return pd.DataFrame(results)
+
+    # Create slope chart for Yetagon Products
+    st.markdown(f'#### Yetagon Products/Services: FY25 vs FY26')
+
+    yetagon_product_labels = {
+        'Q31_a': 'Yetagon Irrigation',
+        'Q31_b': 'Yetagon EM/Zarmani',
+        'Q31_c': 'Yetagon Trichoderma',
+        'Q31_d': 'Yetagon Tele-agronomy',
+        'Q31_i': 'Digital farm practices',
+        'Q31_g': 'Po Chat'
+    }
+
+    yetagon_used_labels = {
+        'Q33_a': 'Yetagon Irrigation',
+        'Q33_b': 'Yetagon EM/Zarmani',
+        'Q33_c': 'Yetagon Trichoderma',
+        'Q33_d': 'Yetagon Tele-agronomy',
+        'Q33_f': 'Digital farm practices',
+        'Q33_k': 'Po Chat'
+    }
+
+    # Calculate percentages for FY25 and FY26 using filtered data
+    fy26_heard = calculate_year_percentages(prod_filtered, yetagon_product_labels, yetagon_product_labels)
+    fy25_heard = calculate_year_percentages(fy25_filtered, yetagon_product_labels, yetagon_product_labels)
+
+    fy26_used = calculate_year_percentages(prod_filtered, yetagon_used_labels, yetagon_used_labels)
+    fy25_used = calculate_year_percentages(fy25_filtered, yetagon_used_labels, yetagon_used_labels)
+
+    # Create slope chart
+    fig_yetagon_comparison = go.Figure()
+
+    # Get unique products (matching between heard and used)
+    products = list(yetagon_product_labels.values())
+    n_products = len(products)
+
+    # Create x-positions: each product has 2 positions (Heard Of, Used)
+    # Product 0: x=0 (Heard), x=1 (Used)
+    # Product 1: x=3 (Heard), x=4 (Used)
+    # Product 2: x=6 (Heard), x=7 (Used), etc.
+    x_spacing = 3  # spacing between products
+
+    all_tick_positions = []
+    all_tick_labels = []
+    product_positions = []  # Center position for each product label
+
+    # Plot for each product
+    for i, product in enumerate(products):
+        # Calculate x positions for this product
+        x_heard = i * x_spacing
+        x_used = i * x_spacing + 1
+
+        all_tick_positions.extend([x_heard, x_used])
+        all_tick_labels.extend(['Heard Of', 'Used'])
+        product_positions.append(i * x_spacing + 0.5)  # Center between heard and used
+
+        # Get FY26 data
+        fy26_h = fy26_heard[fy26_heard['Product'] == product]['Percentage'].values
+        fy26_u = fy26_used[fy26_used['Product'] == product]['Percentage'].values
+
+        # Get FY25 data
+        fy25_h = fy25_heard[fy25_heard['Product'] == product]['Percentage'].values
+        fy25_u = fy25_used[fy25_used['Product'] == product]['Percentage'].values
+
+        # FY26 line (Heard Of to Used)
+        if len(fy26_h) > 0 and len(fy26_u) > 0:
+            fig_yetagon_comparison.add_trace(go.Scatter(
+                x=[x_heard, x_used],
+                y=[fy26_h[0], fy26_u[0]],
+                mode='lines+markers',
+                name=f'FY26' if i == 0 else '',
+                line=dict(color='#0f4c3a', width=2),
+                marker=dict(size=8),
+                showlegend=(i == 0),
+                legendgroup='FY26',
+                hovertemplate=f'{product}<br>%{{y:.1f}}%<extra></extra>'
+            ))
+
+        # FY25 line (Heard Of to Used)
+        if len(fy25_h) > 0 and len(fy25_u) > 0:
+            fig_yetagon_comparison.add_trace(go.Scatter(
+                x=[x_heard, x_used],
+                y=[fy25_h[0], fy25_u[0]],
+                mode='lines+markers',
+                name=f'FY25' if i == 0 else '',
+                line=dict(color='#8fc1e3', width=2, dash='dash'),
+                marker=dict(size=8),
+                showlegend=(i == 0),
+                legendgroup='FY25',
+                hovertemplate=f'{product}<br>%{{y:.1f}}%<extra></extra>'
+            ))
+
+    # Create x-axis with product groups
+    # First layer: Heard Of / Used for each product
+    # Second layer: Product names
+    xaxis_dict = dict(
+        tickmode='array',
+        tickvals=all_tick_positions,
+        ticktext=all_tick_labels,
+        tickangle=0,
+        showgrid=True
+    )
+
+    # Prepare annotations list with product labels
+    annotations_list = []
+
+    # Add product labels below the x-axis with smart wrapping (max 2 lines) and angled text
+    for i, product in enumerate(products):
+        # Smart wrapping: break into 2 lines if longer than ~15 chars
+        words = product.split()
+        if len(product) > 15 and len(words) > 1:
+            # Split roughly in half (max 2 lines)
+            mid = len(words) // 2
+            product_wrapped = '<br>'.join([' '.join(words[:mid]), ' '.join(words[mid:])])
+        else:
+            product_wrapped = product
+
+        annotations_list.append(
+            dict(
+                x=product_positions[i],
+                y=-0.15,
+                text=f"<b>{product_wrapped}</b>",
+                showarrow=False,
+                xanchor="right",
+                yanchor="top",
+                font=dict(size=12),
+                textangle=-45,
+                xref="x",
+                yref="paper"
+            )
+        )
+
+    fig_yetagon_comparison.update_layout(
+        xaxis=xaxis_dict,
+        yaxis=dict(
+            title='Percentage (%)'
+        ),
+        height=600,
+        hovermode='closest',
+        showlegend=True,
+        legend=dict(
+            orientation='h',
+            yanchor='bottom',
+            y=1.02,
+            xanchor='right',
+            x=1
+        ),
+        margin=dict(b=120),  # Add bottom margin for product labels
+        annotations=annotations_list
+    )
+
+    st.plotly_chart(fig_yetagon_comparison, use_container_width=True, key='yetagon_fy25_fy26_comparison')
+
+    # Create slope chart for Farming Techniques
+    st.markdown(f'#### Farming Techniques: FY25 vs FY26')
+
+    technique_heard_labels = {
+        'Q32_a': 'No Burn Rice Farming',
+        'Q32_b': 'Salt Water Seed Selection',
+        'Q32_c': 'Basal Fertilizer Usage for Rice',
+        'Q32_d': 'Mid-season Fertilizer Usage for Rice',
+        'Q32_e': 'Paddy Liming Acid',
+        'Q32_f': 'Gypsum Application',
+        'Q32_g': 'Boron Foliar Spray',
+        'Q32_h': 'Epsom Salt Foliar Spray',
+        'Q32_i': 'Neem Pesticide',
+        'Q32_j': 'Fish Amino'
+    }
+
+    technique_used_labels = {
+        'Q34_a': 'No Burn Rice Farming',
+        'Q34_b': 'Salt Water Seed Selection',
+        'Q34_c': 'Basal Fertilizer Usage for Rice',
+        'Q34_d': 'Mid-season Fertilizer Usage for Rice',
+        'Q34_e': 'Paddy Liming Acid',
+        'Q34_f': 'Gypsum Application',
+        'Q34_g': 'Boron Foliar Spray',
+        'Q34_h': 'Epsom Salt Foliar Spray',
+        'Q34_i': 'Neem Pesticide',
+        'Q34_j': 'Fish Amino'
+    }
+
+    # Calculate percentages for FY25 and FY26 using filtered data
+    fy26_tech_heard = calculate_year_percentages(prod_filtered, technique_heard_labels, technique_heard_labels)
+    fy25_tech_heard = calculate_year_percentages(fy25_filtered, technique_heard_labels, technique_heard_labels)
+
+    fy26_tech_used = calculate_year_percentages(prod_filtered, technique_used_labels, technique_used_labels)
+    fy25_tech_used = calculate_year_percentages(fy25_filtered, technique_used_labels, technique_used_labels)
+
+    # Create slope chart
+    fig_technique_comparison = go.Figure()
+
+    # Get unique techniques
+    techniques = list(technique_heard_labels.values())
+    n_techniques = len(techniques)
+
+    # Create x-positions: each technique has 2 positions (Heard Of, Used)
+    x_spacing = 3  # spacing between techniques
+
+    all_tick_positions = []
+    all_tick_labels = []
+    technique_positions = []  # Center position for each technique label
+
+    # Plot for each technique
+    for i, technique in enumerate(techniques):
+        # Calculate x positions for this technique
+        x_heard = i * x_spacing
+        x_used = i * x_spacing + 1
+
+        all_tick_positions.extend([x_heard, x_used])
+        all_tick_labels.extend(['Heard Of', 'Used'])
+        technique_positions.append(i * x_spacing + 0.5)  # Center between heard and used
+
+        # Get FY26 data
+        fy26_h = fy26_tech_heard[fy26_tech_heard['Product'] == technique]['Percentage'].values
+        fy26_u = fy26_tech_used[fy26_tech_used['Product'] == technique]['Percentage'].values
+
+        # Get FY25 data
+        fy25_h = fy25_tech_heard[fy25_tech_heard['Product'] == technique]['Percentage'].values
+        fy25_u = fy25_tech_used[fy25_tech_used['Product'] == technique]['Percentage'].values
+
+        # FY26 line (Heard Of to Used)
+        if len(fy26_h) > 0 and len(fy26_u) > 0:
+            fig_technique_comparison.add_trace(go.Scatter(
+                x=[x_heard, x_used],
+                y=[fy26_h[0], fy26_u[0]],
+                mode='lines+markers',
+                name=f'FY26' if i == 0 else '',
+                line=dict(color='#d73027', width=2),
+                marker=dict(size=8),
+                showlegend=(i == 0),
+                legendgroup='FY26',
+                hovertemplate=f'{technique}<br>%{{y:.1f}}%<extra></extra>'
+            ))
+
+        # FY25 line (Heard Of to Used)
+        if len(fy25_h) > 0 and len(fy25_u) > 0:
+            fig_technique_comparison.add_trace(go.Scatter(
+                x=[x_heard, x_used],
+                y=[fy25_h[0], fy25_u[0]],
+                mode='lines+markers',
+                name=f'FY25' if i == 0 else '',
+                line=dict(color='#f39c12', width=2, dash='dash'),
+                marker=dict(size=8),
+                showlegend=(i == 0),
+                legendgroup='FY25',
+                hovertemplate=f'{technique}<br>%{{y:.1f}}%<extra></extra>'
+            ))
+
+    # Create x-axis with technique groups
+    xaxis_dict = dict(
+        tickmode='array',
+        tickvals=all_tick_positions,
+        ticktext=all_tick_labels,
+        tickangle=0,
+        showgrid=True
+    )
+
+    # Prepare annotations list with technique labels
+    technique_annotations_list = []
+
+    # Add technique labels below the x-axis with smart wrapping (max 2 lines) and angled text
+    for i, technique in enumerate(techniques):
+        # Smart wrapping: break into 2 lines if longer than ~15 chars
+        words = technique.split()
+        if len(technique) > 15 and len(words) > 1:
+            # Split roughly in half (max 2 lines)
+            mid = len(words) // 2
+            technique_wrapped = '<br>'.join([' '.join(words[:mid]), ' '.join(words[mid:])])
+        else:
+            technique_wrapped = technique
+
+        technique_annotations_list.append(
+            dict(
+                x=technique_positions[i],
+                y=-0.15,
+                text=f"<b>{technique_wrapped}</b>",
+                showarrow=False,
+                xanchor="right",
+                yanchor="top",
+                font=dict(size=12),
+                textangle=-45,
+                xref="x",
+                yref="paper"
+            )
+        )
+
+    fig_technique_comparison.update_layout(
+        xaxis=xaxis_dict,
+        yaxis=dict(
+            title='Percentage (%)'
+        ),
+        height=600,
+        hovermode='closest',
+        showlegend=True,
+        legend=dict(
+            orientation='h',
+            yanchor='bottom',
+            y=1.02,
+            xanchor='right',
+            x=1
+        ),
+        margin=dict(b=140),  # Add bottom margin for technique labels
+        annotations=technique_annotations_list
+    )
+
+    st.plotly_chart(fig_technique_comparison, use_container_width=True, key='technique_fy25_fy26_comparison')
 
     st.markdown('---')
 

@@ -1,0 +1,242 @@
+code,question,option
+Q00,Do you have own phone?,
+Q01,Farmer's phone number,
+Q02,What is your age? (Enumerator instruction: Do NOT read options; classify response according to the options.),
+Q03,What is your gender? (Enumerator instruction: READ all options. Make farmer choose one option only.),
+Q06,which crop did you grow during past 3 months?,
+Q06_a,which crop did you grow during past 3 months?,Rice
+Q06_b,which crop did you grow during past 3 months?,Sesame
+Q06_c,which crop did you grow during past 3 months?,Groundnut
+Q06_d,which crop did you grow during past 3 months?,Pulses
+Q06_e,which crop did you grow during past 3 months?,Vegetables
+Q06_f,which crop did you grow during past 3 months?,Flowers
+Q06_g,which crop did you grow during past 3 months?,Long-term trees
+Q06_h,which crop did you grow during past 3 months?,Chili
+Q06_i,which crop did you grow during past 3 months?,Tomato
+Q06_j,which crop did you grow during past 3 months?,Onion
+Q06_k,which crop did you grow during past 3 months?,Green Gram
+Q06_l,which crop did you grow during past 3 months?,Black Gram
+Q06_m,which crop did you grow during past 3 months?,Chickpea
+Q06_n,which crop did you grow during past 3 months?,other
+Q06_other_text,"If other, please specify.",
+Q07,Do they share their phone in their households?,
+Q07_a,Do they share their phone in their households?,Children
+Q07_b,Do they share their phone in their households?,Spouse
+Q07_c,Do they share their phone in their households?,Cousin
+Q07_d,Do they share their phone in their households?,Parents
+Q07_e,Do they share their phone in their households?,Others
+Q07_f,Do they share their phone in their households?,I don't share with anyone
+Q07_other_text,"If other, please specify.",
+Q08,Do you have an access to the internet?,
+Q09,"When he/she face need advice for their farms, how do they seek the advice and suggestions?",
+Q09_a,"When he/she face need advice for their farms, how do they seek the advice and suggestions?",Asking the friend farmers
+Q09_b,"When he/she face need advice for their farms, how do they seek the advice and suggestions?",Searching on social media channels
+Q09_c,"When he/she face need advice for their farms, how do they seek the advice and suggestions?",Input shops
+Q09_d,"When he/she face need advice for their farms, how do they seek the advice and suggestions?",Calling to Yetagon or Proximity Designs
+Q09_e,"When he/she face need advice for their farms, how do they seek the advice and suggestions?",Calling to other organisations
+Q09_f,"When he/she face need advice for their farms, how do they seek the advice and suggestions?",Others
+Q09_other_text,"If other, please specify",
+Q10,Which social media channels are they using day to day ?,
+Q10_a,Which social media channels are they using day to day ?,Facebook
+Q10_b,Which social media channels are they using day to day ?,Youtube
+Q10_c,Which social media channels are they using day to day ?,Titok
+Q10_d,Which social media channels are they using day to day ?,Viber
+Q10_e,Which social media channels are they using day to day ?,Instagram
+Q10_f,Which social media channels are they using day to day ?,Messenger
+Q10_g,Which social media channels are they using day to day ?,Others
+Q10_other_text,"If other, please specify",
+Q11,What time do they use internet?,
+Q11_a,What time do they use internet?,Morning
+Q11_b,What time do they use internet?,Afternoon
+Q11_c,What time do they use internet?,Evening
+Q11_d,What time do they use internet?,Night
+Q12,[FACEBOOK & Messenger]  What do they use it for?,
+Q12_a,[FACEBOOK & Messenger]  What do they use it for?,To read the news
+Q12_b,[FACEBOOK & Messenger]  What do they use it for?,To find information about farming
+Q12_c,[FACEBOOK & Messenger]  What do they use it for?,To contact with friends and family
+Q12_d,[FACEBOOK & Messenger]  What do they use it for?,For entertainment
+Q12_e,[FACEBOOK & Messenger]  What do they use it for?,Other
+Q12_other_text,"If other, please specify",
+Q13,[FACEBOOK] What are the key challenges for using Facebook?,
+Q13_a,[FACEBOOK] What are the key challenges for using Facebook?,too complicated to use
+Q13_b,[FACEBOOK] What are the key challenges for using Facebook?,Poor Internet
+Q13_c,[FACEBOOK] What are the key challenges for using Facebook?,Internet price are so expensive
+Q13_d,[FACEBOOK] What are the key challenges for using Facebook?,Have to change the mobile numbers due to the poor connection
+Q13_e,[FACEBOOK] What are the key challenges for using Facebook?,Others
+Q13_other_text,"If other,please specify.",
+Q14,[Confident] [FACEBOOK]  How do they use the Facebook? OR how confident are they using Facebook?,
+Q15,What do they use it for?,
+Q15_a,What do they use it for?,To read the news
+Q15_b,What do they use it for?,To find information about farming
+Q15_c,What do they use it for?,For entertainment
+Q15_d,What do they use it for?,Other
+Q15_other_text,"If other, please specify",
+Q16,(Youtube ) What are the key challenges for using Tube?,
+Q16_a,(Youtube ) What are the key challenges for using Tube?,too complicated to use
+Q16_b,(Youtube ) What are the key challenges for using Tube?,Poor Internet
+Q16_c,(Youtube ) What are the key challenges for using Tube?,Internet price are so expensive
+Q16_d,(Youtube ) What are the key challenges for using Tube?,Have to change the mobile numbers due to the poor connection
+Q16_e,(Youtube ) What are the key challenges for using Tube?,Others
+Q16_other_text,"If other, please specify",
+Q17,How do they use the Youtube? OR how confident are they using Youtube?,
+Q18,(Tiktok )What do they use it for?,
+Q18_a,(Tiktok )What do they use it for?,To read the news
+Q18_b,(Tiktok )What do they use it for?,To find information about farming
+Q18_c,(Tiktok )What do they use it for?,To contact with friends and family
+Q18_d,(Tiktok )What do they use it for?,For entertainment
+Q18_e,(Tiktok )What do they use it for?,Others
+Q18_other_text,"If other, please specify.",
+Q19,( Tiktok)  What are the key challenges for using Tiktok?,
+Q19_a,( Tiktok)  What are the key challenges for using Tiktok?,too complicated to use
+Q19_b,( Tiktok)  What are the key challenges for using Tiktok?,Poor Internet
+Q19_c,( Tiktok)  What are the key challenges for using Tiktok?,Internet price are so expensive
+Q19_d,( Tiktok)  What are the key challenges for using Tiktok?,Have to change the mobile numbers due to the poor connection
+Q19_e,( Tiktok)  What are the key challenges for using Tiktok?,Others
+Q19_other_text,"If other, please specify",
+Q20,[Confident] [Tiktok]  How do they use the Tiktok ? OR how confident are they using Titok?,
+Q21,What do they use it for?,
+Q21_a,What do they use it for?,To read the news
+Q21_b,What do they use it for?,To find information about farming
+Q21_c,What do they use it for?,To contact with friends and family
+Q21_d,What do they use it for?,For entertainment
+Q21_e,What do they use it for?,other
+Q21_other_text,If other. Please specify,
+Q22,What are the key challenges for using viber?,
+Q22_a,What are the key challenges for using viber?,too complicated to use
+Q22_b,What are the key challenges for using viber?,Poor Internet
+Q22_c,What are the key challenges for using viber?,Internet price are so expensive
+Q22_d,What are the key challenges for using viber?,Have to change the mobile numbers due to the poor connection
+Q22_e,What are the key challenges for using viber?,Others
+Q22_other_text,If other. Please specify,
+Q23,How do they use the viber ? OR how confident are they using viber?,
+Q24,( Others ) What do they use it for?,
+Q24_a,( Others ) What do they use it for?,To read the news
+Q24_b,( Others ) What do they use it for?,To find information about farming
+Q24_c,( Others ) What do they use it for?,To contact with friends and family
+Q24_d,( Others ) What do they use it for?,For entertainment
+Q24_e,( Others ) What do they use it for?,other
+Q24_other_text,"If other, please specify",
+Q25,[Others] What are the key challenges for using others ?,
+Q25_a,[Others] What are the key challenges for using others ?,too complicated to use
+Q25_b,[Others] What are the key challenges for using others ?,Poor Internet
+Q25_c,[Others] What are the key challenges for using others ?,Internet price are so expensive
+Q25_d,[Others] What are the key challenges for using others ?,Have to change the mobile numbers due to the poor connection
+Q25_e,[Others] What are the key challenges for using others ?,Others
+Q25_other_text,"If other, please specify",
+Q26,[Confident] [other]  How do they use the Facebook? OR how confident are they using others?,
+Q27,What level of poor connection are they facing?,
+Q28,"How many hours in a day did they use social media? (with answer ranges)  """,
+Q28_other_text,"If other, please specify",
+Q29,"How much do you spend on a mobile top up per week?""",
+Q29_other_text,"If other, please specify",
+Q30,[MOBILE NO] How frequent have they changed their mobile numbers ?,
+Q31,Name of the Yetagon products and services have you heard of? (Please select all that apply.),
+Q31_a,Name of the Yetagon products and services have you heard of? (Please select all that apply.),Yetagon Irrigation (ရေတံခွန် ရေသွင်းပစ္စည်း)
+Q31_b,Name of the Yetagon products and services have you heard of? (Please select all that apply.),Yetagon EM/Zarmani (ရေတံခွန် ဇာမဏီစွမ်း)
+Q31_c,Name of the Yetagon products and services have you heard of? (Please select all that apply.),Yetagon Trichoderma/Barhmati (ရေတံခွန် ဘာမထီစမ်း)
+Q31_d,Name of the Yetagon products and services have you heard of? (Please select all that apply.),Yetagon Tele-agronomy
+Q31_e,Name of the Yetagon products and services have you heard of? (Please select all that apply.),Yetagon Sun-kissed (နေခြည်ဆမ်း)
+Q31_f,Name of the Yetagon products and services have you heard of? (Please select all that apply.),Yetagon Fish Amino (ပုလဲဆန်း)
+Q31_g,Name of the Yetagon products and services have you heard of? (Please select all that apply.),Po Chat
+Q31_h,Name of the Yetagon products and services have you heard of? (Please select all that apply.),Messenger
+Q31_i,Name of the Yetagon products and services have you heard of? (Please select all that apply.),Digital farm practices
+Q31_j,Name of the Yetagon products and services have you heard of? (Please select all that apply.),None of the above
+Q31_k,Name of the Yetagon products and services have you heard of? (Please select all that apply.),EM
+Q31_l,Name of the Yetagon products and services have you heard of? (Please select all that apply.),Other (open end)
+Q31_other_text,"If other, please specify",
+Q32,Have you ever heard which technique?,
+Q32_a,Have you ever heard which technique?,No Burn Rice Farming
+Q32_b,Have you ever heard which technique?,Salt Water Seed Selection
+Q32_c,Have you ever heard which technique?,Basal Fertilizer Usage for Rice
+Q32_d,Have you ever heard which technique?,Mid-season Fertilizer Usage for Rice
+Q32_e,Have you ever heard which technique?,Paddy Liming Acid
+Q32_f,Have you ever heard which technique?,Gypsum Appication
+Q32_g,Have you ever heard which technique?,Boron Foliar Spray
+Q32_h,Have you ever heard which technique?,Epsom Salt Foliar Spray
+Q32_i,Have you ever heard which technique?,Neem Pesticide
+Q32_j,Have you ever heard which technique?,Fish Amino
+Q32_k,Have you ever heard which technique?,Other (open end)
+Q32_other_text,"If other, please specify",
+Q33,Which of the following Yetagon products and services have you used ? (Please select all that apply.),
+Q33_a,Which of the following Yetagon products and services have you used ? (Please select all that apply.),Yetagon Irrigation (ရေတံခွန် ရေသွင်းပစ္စည်း)
+Q33_b,Which of the following Yetagon products and services have you used ? (Please select all that apply.),Yetagon EM/Zarmani (ရေတံခွန် ဇာမဏီစွမ်း)
+Q33_c,Which of the following Yetagon products and services have you used ? (Please select all that apply.),Yetagon Trichoderma/Barhmati (ရေတံခွန် ဘာမထီစမ်း)
+Q33_d,Which of the following Yetagon products and services have you used ? (Please select all that apply.),Yetagon Tele-agronomy
+Q33_e,Which of the following Yetagon products and services have you used ? (Please select all that apply.),Yetagon Tele-agronomy.1
+Q33_f,Which of the following Yetagon products and services have you used ? (Please select all that apply.),Digital farm practices
+Q33_g,Which of the following Yetagon products and services have you used ? (Please select all that apply.),None of the above
+Q33_h,Which of the following Yetagon products and services have you used ? (Please select all that apply.),Other (open end)
+Q33_i,Which of the following Yetagon products and services have you used ? (Please select all that apply.),Yetagon Sun-kissed (နေခြည်ဆမ်း)
+Q33_j,Which of the following Yetagon products and services have you used ? (Please select all that apply.),Yetagon Fish Amino (ပုလဲဆန်း)
+Q33_k,Which of the following Yetagon products and services have you used ? (Please select all that apply.),Po Chat
+Q33_l,Which of the following Yetagon products and services have you used ? (Please select all that apply.),Messenger
+Q33_other_text,"If other, please specify",
+Q34,Have you ever used which technique?,
+Q34_a,Have you ever used which technique?,No Burn Rice Farming
+Q34_b,Have you ever used which technique?,Salt Water Seed Selection
+Q34_c,Have you ever used which technique?,Basal Fertilizer Usage for Rice
+Q34_d,Have you ever used which technique?,Mid-season Fertilizer Usage for Rice
+Q34_e,Have you ever used which technique?,Paddy Liming Acid
+Q34_f,Have you ever used which technique?,Gypsum Appication
+Q34_g,Have you ever used which technique?,Boron Foliar Spray
+Q34_h,Have you ever used which technique?,Epsom Salt Foliar Spray
+Q34_i,Have you ever used which technique?,Neem Pesticide
+Q34_j,Have you ever used which technique?,Fish Amino
+Q34_k,Have you ever used which technique?,Other
+Q34_other_text,"If other, please specify",
+Q35,Where do you know Po Chat from?,
+Q35_other_text,"If other, please specify",
+Q36,Is there any other bio-product brand that you heard of apart from Yetagon?,
+Q36_a,Is there any other bio-product brand that you heard of apart from Yetagon?,From Facebook
+Q36_b,Is there any other bio-product brand that you heard of apart from Yetagon?,From Yetagon's staff
+Q36_c,Is there any other bio-product brand that you heard of apart from Yetagon?,From Signage
+Q36_d,Is there any other bio-product brand that you heard of apart from Yetagon?,Form Delaer shop
+Q36_e,Is there any other bio-product brand that you heard of apart from Yetagon?,other
+Q36_f,Is there any other bio-product brand that you heard of apart from Yetagon?,TRI-S
+Q36_g,Is there any other bio-product brand that you heard of apart from Yetagon?,Tricho Power
+Q36_h,Is there any other bio-product brand that you heard of apart from Yetagon?,Transform
+Q36_i,Is there any other bio-product brand that you heard of apart from Yetagon?,Sote Phwar
+Q36_j,Is there any other bio-product brand that you heard of apart from Yetagon?,Shwe Tet Lan
+Q36_k,Is there any other bio-product brand that you heard of apart from Yetagon?,Hatake
+Q36_l,Is there any other bio-product brand that you heard of apart from Yetagon?,Ywat Lwint
+Q36_m,Is there any other bio-product brand that you heard of apart from Yetagon?,Pyan Lwar
+Q36_n,Is there any other bio-product brand that you heard of apart from Yetagon?,Doh Kyay Let
+Q36_o,Is there any other bio-product brand that you heard of apart from Yetagon?,Eco-Vital Bio-stimulant
+Q36_other_text,"If other, please specify",
+Q36_p,Is there any other bio-product brand that you heard of apart from Yetagon?,Other
+Q37,Is there any other bio-product brand that you used of apart from Yetagon?,
+Q37_a,Is there any other bio-product brand that you used of apart from Yetagon?,Yes
+Q37_b,Is there any other bio-product brand that you used of apart from Yetagon?,No
+Q37_c,Is there any other bio-product brand that you used of apart from Yetagon?,TRI-S
+Q37_d,Is there any other bio-product brand that you used of apart from Yetagon?,Tricho Power
+Q37_e,Is there any other bio-product brand that you used of apart from Yetagon?,Transform
+Q37_f,Is there any other bio-product brand that you used of apart from Yetagon?,Sote Phwar
+Q37_g,Is there any other bio-product brand that you used of apart from Yetagon?,Shwe Tet Lan
+Q37_h,Is there any other bio-product brand that you used of apart from Yetagon?,Hatake
+Q37_i,Is there any other bio-product brand that you used of apart from Yetagon?,Ywat Lwint
+Q37_j,Is there any other bio-product brand that you used of apart from Yetagon?,Pyan Lwar
+Q37_k,Is there any other bio-product brand that you used of apart from Yetagon?,Doh Kyay Let
+Q37_l,Is there any other bio-product brand that you used of apart from Yetagon?,Eco-Vital Bio-stimulant
+Q37_m,Is there any other bio-product brand that you used of apart from Yetagon?,Other
+Q37_other_text,"If other, please specify",
+Q38,Where do you hear about Yetagon?,
+Q38_a,Where do you hear about Yetagon?,0
+Q38_b,Where do you hear about Yetagon?,1
+Q38_c,Where do you hear about Yetagon?,2
+Q38_d,Where do you hear about Yetagon?,3
+Q38_e,Where do you hear about Yetagon?,4
+Q38_f,Where do you hear about Yetagon?,5
+Q38_g,Where do you hear about Yetagon?,6
+Q38_h,Where do you hear about Yetagon?,7
+Q38_i,Where do you hear about Yetagon?,8
+Q38_j,Where do you hear about Yetagon?,9
+Q38_k,Where do you hear about Yetagon?,10
+Q38_l,Where do you hear about Yetagon?,From Facebook
+Q38_m,Where do you hear about Yetagon?,From Yetagon's staff
+Q38_n,Where do you hear about Yetagon?,From Signage
+Q38_o,Where do you hear about Yetagon?,Form Delaer shop
+Q38_other_text,"If other, please specify",
+Q38_p,Where do you hear about Yetagon?,other
+Q39,Have you ever speak with Yetagon's staff about product and services?,
+Q40,"On a scale of 0 to 10, how likely are you to recommend Yetagon to a friend or colleague?",
+Q41,Why do you choose this NPS score?,

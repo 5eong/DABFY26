@@ -100,7 +100,23 @@ def plot_demographics(df, platform_key):
                 y='Count',
                 color_discrete_sequence=['#0f4c3a']
             )
-            fig_age.update_layout(showlegend=False, xaxis_title='', yaxis_title='', height=250)
+            fig_age.update_layout(
+                showlegend=False,
+                xaxis_title='',
+                yaxis_title='',
+                height=250,
+                annotations=[
+                    dict(
+                        text=f'n={len(df)}',
+                        xref='paper', yref='paper',
+                        x=0.02, y=0.98,
+                        showarrow=False,
+                        font=dict(size=10, color='gray'),
+                        bgcolor='rgba(255,255,255,0.8)',
+                        borderpad=4
+                    )
+                ]
+            )
             fig_age.update_xaxes(tickangle=-45)
             st.plotly_chart(fig_age, use_container_width=True, key=f'{platform_key}_age_chart')
 
@@ -120,7 +136,21 @@ def plot_demographics(df, platform_key):
                 color_discrete_map={'Digital': '#0f4c3a', 'Direct': '#8fc1e3'}
             )
             fig_dd.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
-            fig_dd.update_layout(showlegend=False, height=250)
+            fig_dd.update_layout(
+                showlegend=False,
+                height=250,
+                annotations=[
+                    dict(
+                        text=f'n={len(df)}',
+                        xref='paper', yref='paper',
+                        x=0.02, y=0.98,
+                        showarrow=False,
+                        font=dict(size=10, color='gray'),
+                        bgcolor='rgba(255,255,255,0.8)',
+                        borderpad=4
+                    )
+                ]
+            )
             st.plotly_chart(fig_dd, use_container_width=True, key=f'{platform_key}_dd_chart')
 
     with demo_col3:
@@ -138,7 +168,21 @@ def plot_demographics(df, platform_key):
                 color_discrete_sequence=px.colors.qualitative.Pastel
             )
             fig_gender.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
-            fig_gender.update_layout(showlegend=False, height=250)
+            fig_gender.update_layout(
+                showlegend=False,
+                height=250,
+                annotations=[
+                    dict(
+                        text=f'n={len(df)}',
+                        xref='paper', yref='paper',
+                        x=0.02, y=0.98,
+                        showarrow=False,
+                        font=dict(size=10, color='gray'),
+                        bgcolor='rgba(255,255,255,0.8)',
+                        borderpad=4
+                    )
+                ]
+            )
             st.plotly_chart(fig_gender, use_container_width=True, key=f'{platform_key}_gender_chart')
 
     with demo_col4:
@@ -156,7 +200,21 @@ def plot_demographics(df, platform_key):
                 color_discrete_sequence=px.colors.qualitative.Set3
             )
             fig_region.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
-            fig_region.update_layout(showlegend=False, height=250)
+            fig_region.update_layout(
+                showlegend=False,
+                height=250,
+                annotations=[
+                    dict(
+                        text=f'n={len(df)}',
+                        xref='paper', yref='paper',
+                        x=0.02, y=0.98,
+                        showarrow=False,
+                        font=dict(size=10, color='gray'),
+                        bgcolor='rgba(255,255,255,0.8)',
+                        borderpad=4
+                    )
+                ]
+            )
             st.plotly_chart(fig_region, use_container_width=True, key=f'{platform_key}_region_chart')
 
 
@@ -203,7 +261,23 @@ def plot_usage_habits(df, platform_key, usecase_col_prefix, confidence_col, conf
             color_discrete_sequence=['#5a8f7b']
         )
         fig_usecase.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
-        fig_usecase.update_layout(showlegend=False, xaxis_title='', yaxis_title='', height=300)
+        fig_usecase.update_layout(
+            showlegend=False,
+            xaxis_title='',
+            yaxis_title='',
+            height=300,
+            annotations=[
+                dict(
+                    text=f'n={len(df)}',
+                    xref='paper', yref='paper',
+                    x=0.02, y=0.98,
+                    showarrow=False,
+                    font=dict(size=10, color='gray'),
+                    bgcolor='rgba(255,255,255,0.8)',
+                    borderpad=4
+                )
+            ]
+        )
         st.plotly_chart(fig_usecase, use_container_width=True, key=f'{platform_key}_usecase_chart')
 
     with usage_col2:
@@ -228,7 +302,23 @@ def plot_usage_habits(df, platform_key, usecase_col_prefix, confidence_col, conf
                 color_discrete_sequence=['#5a8f7b']
             )
             fig_conf.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
-            fig_conf.update_layout(showlegend=False, xaxis_title='', yaxis_title='', height=300)
+            fig_conf.update_layout(
+                showlegend=False,
+                xaxis_title='',
+                yaxis_title='',
+                height=300,
+                annotations=[
+                    dict(
+                        text=f'n={len(df)}',
+                        xref='paper', yref='paper',
+                        x=0.02, y=0.98,
+                        showarrow=False,
+                        font=dict(size=10, color='gray'),
+                        bgcolor='rgba(255,255,255,0.8)',
+                        borderpad=4
+                    )
+                ]
+            )
             st.plotly_chart(fig_conf, use_container_width=True, key=f'{platform_key}_conf_chart')
 
 
@@ -273,7 +363,23 @@ def plot_challenges(df, platform_key, challenge_col_prefix):
             color_discrete_sequence=['#d73027']
         )
         fig_challenges.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
-        fig_challenges.update_layout(showlegend=False, xaxis_title='', yaxis_title='', height=300)
+        fig_challenges.update_layout(
+            showlegend=False,
+            xaxis_title='',
+            yaxis_title='',
+            height=300,
+            annotations=[
+                dict(
+                    text=f'n={len(df)}',
+                    xref='paper', yref='paper',
+                    x=0.02, y=0.98,
+                    showarrow=False,
+                    font=dict(size=10, color='gray'),
+                    bgcolor='rgba(255,255,255,0.8)',
+                    borderpad=4
+                )
+            ]
+        )
         st.plotly_chart(fig_challenges, use_container_width=True, key=f'{platform_key}_challenges_chart')
 
     with challenge_col2:
@@ -295,7 +401,23 @@ def plot_challenges(df, platform_key, challenge_col_prefix):
                 color_discrete_sequence=['#d73027']
             )
             fig_conn.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
-            fig_conn.update_layout(showlegend=False, xaxis_title='', yaxis_title='', height=300)
+            fig_conn.update_layout(
+                showlegend=False,
+                xaxis_title='',
+                yaxis_title='',
+                height=300,
+                annotations=[
+                    dict(
+                        text=f'n={len(df)}',
+                        xref='paper', yref='paper',
+                        x=0.02, y=0.98,
+                        showarrow=False,
+                        font=dict(size=10, color='gray'),
+                        bgcolor='rgba(255,255,255,0.8)',
+                        borderpad=4
+                    )
+                ]
+            )
             st.plotly_chart(fig_conn, use_container_width=True, key=f'{platform_key}_conn_chart')
 
 
