@@ -186,11 +186,11 @@ with tab1:
     with demo_col3:
         st.subheader('Sources of Farming Information')
         q09_labels = {
-            'Q09_a': 'Asking the friend farmers',
-            'Q09_b': 'Searching on social media channels',
+            'Q09_a': 'Friend farmers',
+            'Q09_b': 'Social media',
             'Q09_c': 'Input shops',
-            'Q09_d': 'Calling to Yetagon or Proximity Designs',
-            'Q09_e': 'Calling to other organisations',
+            'Q09_d': 'Yetagon/Proximity',
+            'Q09_e': 'Other orgs',
             'Q09_f': 'Others'
         }
 
@@ -388,7 +388,7 @@ with tab1:
         'Q06_k': 'Green Gram',
         'Q06_l': 'Black Gram',
         'Q06_m': 'Chickpea',
-        'Q06_n': 'other'
+        'Q06_n': 'Other'
     }
 
     # Filter to only crops that exist in the data
@@ -488,7 +488,7 @@ with tab2:
         q10_labels = {
             'Q10_a': 'Facebook',
             'Q10_b': 'Youtube',
-            'Q10_c': 'Titok',
+            'Q10_c': 'TikTok',
             'Q10_d': 'Viber',
             'Q10_e': 'Instagram',
             'Q10_f': 'Messenger',
@@ -973,7 +973,6 @@ with tab4:
     st.markdown('#### Yetagon Products/Services: Awareness vs Usage')
 
     # Q31 and Q33: Yetagon products heard of vs used
-    # Labels match CLEAN_FY26_ANSWER.csv
     q31_labels = {
         'Q31_a': 'Yetagon Irrigation',
         'Q31_b': 'Yetagon EM/Zarmani',
@@ -994,13 +993,13 @@ with tab4:
         'Q33_b': 'Yetagon EM/Zarmani',
         'Q33_c': 'Yetagon Trichoderma/Barhmati',
         'Q33_d': 'Yetagon Tele-agronomy',
-        'Q33_e': 'Digital farm practices',
-        'Q33_f': 'None of the above',
-        'Q33_g': 'Other',
         'Q33_h': 'Yetagon Sun-kissed',
         'Q33_i': 'Yetagon Fish Amino',
         'Q33_j': 'Po Chat',
-        'Q33_k': 'Messenger'
+        'Q33_k': 'Messenger',
+        'Q33_e': 'Digital farm practices',
+        'Q33_f': 'None of the above',
+        'Q33_g': 'Other'
     }
 
     # Combine data for both heard and used
@@ -1058,7 +1057,7 @@ with tab4:
         'Q32_c': 'Basal Fertilizer Usage for Rice',
         'Q32_d': 'Mid-season Fertilizer Usage for Rice',
         'Q32_e': 'Paddy Liming Acid',
-        'Q32_f': 'Gypsum Appication',
+        'Q32_f': 'Gypsum Application',
         'Q32_g': 'Boron Foliar Spray',
         'Q32_h': 'Epsom Salt Foliar Spray',
         'Q32_i': 'Neem Pesticide',
@@ -1072,7 +1071,7 @@ with tab4:
         'Q34_c': 'Basal Fertilizer Usage for Rice',
         'Q34_d': 'Mid-season Fertilizer Usage for Rice',
         'Q34_e': 'Paddy Liming Acid',
-        'Q34_f': 'Gypsum Appication',
+        'Q34_f': 'Gypsum Application',
         'Q34_g': 'Boron Foliar Spray',
         'Q34_h': 'Epsom Salt Foliar Spray',
         'Q34_i': 'Neem Pesticide',
