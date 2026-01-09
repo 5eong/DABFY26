@@ -1129,16 +1129,16 @@ with tab4:
 
     # Digital Products Analysis Section
     st.subheader('Digital Products Analysis')
-    st.caption('Note: Any technique (Q32/Q34), Po Chat (Q31_g), Messenger (Q31_h), Digital farm practices (Q31_i); FY25 does not have a "Used" category for Po Chat (Q33_k does not exist in FY25 survey) or Messenger (Q31_k and Q33_k does not exist in FY25 survey)')
+    st.caption('Note: Any technique (Q32/Q34), Po Chat (Q31_g), Messenger (Q31_h), Digital farm practices (Q31_i); FY25 does not have a "Used" category for Po Chat (Q33_j does not exist in FY25 survey) or Messenger (Q33_k does not exist in FY25 survey)')
 
     # Define digital product columns
     # Heard of: Any Q32 technique OR Q31_g OR Q31_h OR Q31_i
     q32_heard_cols = [f'Q32_{chr(97+i)}' for i in range(11)]  # Q32_a through Q32_k
     digital_heard_cols = q32_heard_cols + ['Q31_g', 'Q31_h', 'Q31_i']
 
-    # Used: Any Q34 technique OR Q33_k (Po Chat used) OR Q33_l (Messenger used) OR Q33_f (Digital farm practices used)
+    # Used: Any Q34 technique OR Q33_j (Po Chat used) OR Q33_k (Messenger used) OR Q33_e (Digital farm practices used)
     q34_used_cols = [f'Q34_{chr(97+i)}' for i in range(11)]  # Q34_a through Q34_k
-    digital_used_cols = q34_used_cols + ['Q33_k', 'Q33_l', 'Q33_f']
+    digital_used_cols = q34_used_cols + ['Q33_j', 'Q33_k', 'Q33_e']
 
     # Create two columns for side-by-side display
     digital_col1, digital_col2 = st.columns(2)
@@ -1772,11 +1772,11 @@ with tab4:
                     'Yetagon EM/Zarmani': 'Q33_b',
                     'Yetagon Trichoderma': 'Q33_c',
                     'Yetagon Tele-agronomy': 'Q33_d',
-                    'Yetagon Sun-kissed': 'Q33_i',
-                    'Yetagon Fish Amino': 'Q33_j',
-                    'Po Chat': 'Q33_k',
-                    'Messenger': 'Q33_l',
-                    'Digital farm practices': 'Q33_f'
+                    'Digital farm practices': 'Q33_e',
+                    'Yetagon Sun-kissed': 'Q33_h',
+                    'Yetagon Fish Amino': 'Q33_i',
+                    'Po Chat': 'Q33_j',
+                    'Messenger': 'Q33_k'
                 }
 
                 # Create reasons breakdown by product with NPS scores
@@ -1841,11 +1841,11 @@ with tab4:
             'Yetagon EM/Zarmani': 'Q33_b',
             'Yetagon Trichoderma': 'Q33_c',
             'Yetagon Tele-agronomy': 'Q33_d',
-            'Yetagon Sun-kissed': 'Q33_i',
-            'Yetagon Fish Amino': 'Q33_j',
-            'Po Chat': 'Q33_k',
-            'Messenger': 'Q33_l',
-            'Digital farm practices': 'Q33_f'
+            'Digital farm practices': 'Q33_e',
+            'Yetagon Sun-kissed': 'Q33_h',
+            'Yetagon Fish Amino': 'Q33_i',
+            'Po Chat': 'Q33_j',
+            'Messenger': 'Q33_k'
         }
 
         # Calculate NPS breakdown by product
