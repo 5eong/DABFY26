@@ -186,11 +186,11 @@ with tab1:
     with demo_col3:
         st.subheader('Sources of Farming Information')
         q09_labels = {
-            'Q09_a': 'Friend farmers',
-            'Q09_b': 'Social media',
+            'Q09_a': 'Asking the friend farmers',
+            'Q09_b': 'Searching on social media channels',
             'Q09_c': 'Input shops',
-            'Q09_d': 'Yetagon/Proximity',
-            'Q09_e': 'Other orgs',
+            'Q09_d': 'Calling to Yetagon or Proximity Designs',
+            'Q09_e': 'Calling to other organisations',
             'Q09_f': 'Others'
         }
 
@@ -388,7 +388,7 @@ with tab1:
         'Q06_k': 'Green Gram',
         'Q06_l': 'Black Gram',
         'Q06_m': 'Chickpea',
-        'Q06_n': 'Other'
+        'Q06_n': 'other'
     }
 
     # Filter to only crops that exist in the data
@@ -488,7 +488,7 @@ with tab2:
         q10_labels = {
             'Q10_a': 'Facebook',
             'Q10_b': 'Youtube',
-            'Q10_c': 'TikTok',
+            'Q10_c': 'Titok',
             'Q10_d': 'Viber',
             'Q10_e': 'Instagram',
             'Q10_f': 'Messenger',
