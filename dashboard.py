@@ -744,7 +744,196 @@ with tab2:
             fig_q28.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
             st.plotly_chart(fig_q28, use_container_width=True, key='hours_per_day_pie')
 
-    # Third row: Level of poor connection and Where they heard about Yetagon
+    # Third row: Platform Time Distribution Analysis
+    st.markdown("---")
+    st.subheader('Platform Time Distribution Analysis')
+    st.caption('Statistical models estimating how each platform contributes to total online time. Based on survey responses about platform usage and time spent online.')
+
+    # Load regression results
+    try:
+        # Load ordinal regression results
+        try:
+            ordinal_results_df = pd.read_csv('clean/platform_time_contributions_ordinal.csv')
+        except FileNotFoundError:
+            ordinal_results_df = None
+
+        # Load OLS regression results
+        try:
+            ols_results_df = pd.read_csv('clean/platform_time_contributions_ols.csv')
+        except FileNotFoundError:
+            ols_results_df = None
+
+        # Create two columns for plot and table (50/50 split)
+        dist_col1, dist_col2 = st.columns([1, 1])
+
+        with dist_col1:
+            # Load platform distribution data for stacked bar chart
+            try:
+                platform_dist_df = pd.read_csv('clean/platform_time_distribution.csv')
+
+                # Create stacked bar chart showing distribution across time categories
+                fig_platform_time = go.Figure()
+
+                # Prepare data for stacked bar - normalize to ensure sum = 100%
+                platforms = platform_dist_df['Platform'].tolist()
+                less_than_2_raw = platform_dist_df['Less_than_2_hours_%'].tolist()
+                two_to_four_raw = platform_dist_df['2_to_4_hours_%'].tolist()
+                more_than_4_raw = platform_dist_df['More_than_4_hours_%'].tolist()
+
+                # Normalize to handle rounding and missing data
+                less_than_2 = []
+                two_to_four = []
+                more_than_4 = []
+                for lt2, t2f, mt4 in zip(less_than_2_raw, two_to_four_raw, more_than_4_raw):
+                    total = lt2 + t2f + mt4
+                    if total > 0:
+                        less_than_2.append(lt2 / total * 100)
+                        two_to_four.append(t2f / total * 100)
+                        more_than_4.append(mt4 / total * 100)
+                    else:
+                        less_than_2.append(0)
+                        two_to_four.append(0)
+                        more_than_4.append(0)
+
+                # Add traces for each time category
+                fig_platform_time.add_trace(go.Bar(
+                    name='<2 hours',
+                    x=platforms,
+                    y=less_than_2,
+                    marker_color='#5a8f7b',
+                    text=[f'{val:.1f}%' for val in less_than_2],
+                    textposition='inside',
+                    hovertemplate='%{x}<br><2 hours: %{y:.1f}%<extra></extra>'
+                ))
+
+                fig_platform_time.add_trace(go.Bar(
+                    name='2-4 hours',
+                    x=platforms,
+                    y=two_to_four,
+                    marker_color='#0f4c3a',
+                    text=[f'{val:.1f}%' for val in two_to_four],
+                    textposition='inside',
+                    hovertemplate='%{x}<br>2-4 hours: %{y:.1f}%<extra></extra>'
+                ))
+
+                fig_platform_time.add_trace(go.Bar(
+                    name='>4 hours',
+                    x=platforms,
+                    y=more_than_4,
+                    marker_color='#073d2a',
+                    text=[f'{val:.1f}%' for val in more_than_4],
+                    textposition='inside',
+                    hovertemplate='%{x}<br>>4 hours: %{y:.1f}%<extra></extra>'
+                ))
+
+                fig_platform_time.update_layout(
+                    barmode='stack',
+                    xaxis_title='Platform',
+                    yaxis_title='Percentage of Users (%)',
+                    height=450,
+                    showlegend=True,
+                    legend=dict(
+                        orientation='h',
+                        yanchor='bottom',
+                        y=1.02,
+                        xanchor='right',
+                        x=1
+                    ),
+                    yaxis=dict(range=[0, 100]),
+                    margin=dict(l=10, r=10, t=40, b=10)
+                )
+
+                st.plotly_chart(fig_platform_time, use_container_width=True, key='platform_time_distribution')
+
+            except FileNotFoundError:
+                st.warning('Distribution data not found. Regenerate with platform_time_estimation.py')
+
+        with dist_col2:
+            st.markdown('**OLS Time Estimates (Hours)**')
+
+            # Prepare display dataframe with OLS results
+            if ols_results_df is not None and 'Time_Contribution_Hours' in ols_results_df.columns:
+                # Create display with OLS time contributions
+                display_df = ols_results_df[['Platform', 'Time_Contribution_Hours']].copy()
+
+                # Calculate standard errors for CI if available
+                if 'R_Squared' in ols_results_df.columns and 'Mean_Total_Time' in ols_results_df.columns:
+                    n_samples = 522
+                    r_squared = ols_results_df['R_Squared'].iloc[0]
+                    residual_se = np.sqrt((1 - r_squared) * ols_results_df['Mean_Total_Time'].iloc[0]**2 / n_samples)
+
+                    # Calculate 95% CI
+                    display_df['CI_Lower'] = (display_df['Time_Contribution_Hours'] - 1.96 * residual_se).clip(lower=0)
+                    display_df['CI_Upper'] = display_df['Time_Contribution_Hours'] + 1.96 * residual_se
+
+                    # Format with CI
+                    display_df['Est. Hours (95% CI)'] = display_df.apply(
+                        lambda row: f"{row['Time_Contribution_Hours']:.2f} ({row['CI_Lower']:.2f}-{row['CI_Upper']:.2f})",
+                        axis=1
+                    )
+
+                    display_df = display_df[['Platform', 'Est. Hours (95% CI)']]
+                else:
+                    # Fallback without CI
+                    display_df['Time_Contribution_Hours'] = display_df['Time_Contribution_Hours'].round(2)
+                    display_df.columns = ['Platform', 'Est. Hours']
+
+                st.dataframe(display_df, hide_index=True, use_container_width=True, height=280)
+
+                # Add methodology note for OLS
+                method_label = ols_results_df['Method'].iloc[0] if 'Method' in ols_results_df.columns else 'OLS'
+                r_sq = ols_results_df['R_Squared'].iloc[0] if 'R_Squared' in ols_results_df.columns else 0.17
+
+            else:
+                st.info('OLS regression results not available.')
+
+    except FileNotFoundError:
+        st.warning('Regression results not found. Please run `python platform_time_estimation.py` first.')
+
+    # Show model assumptions and performance metrics below
+    st.markdown("### Model Assumptions & Performance")
+
+    # Add detailed assumptions explanation
+    with st.expander("📋 Model Assumptions (Important to Understand)"):
+        st.markdown("""
+        Both models make key assumptions that affect (i.e. limits) how we interpret the results:
+
+        ##### **Additive Time**: 
+           - We assume time spent on different social media platforms adds up to total online time
+           - If someone uses both Facebook and YouTube, their total time is roughly Facebook time + YouTube time
+
+                    
+        ##### **Consistent User Behavior**: 
+           - Each social media platform contributes similarly across different types of users
+           - Different user categories (e.g. older versus young) have similar patterns of platform usage
+           - If only young people use TikTok heavily, but older people use it lightly, the model "averages" across both populations
+
+                    
+        ##### **No Major Interactions**: 
+           - Using multiple social media platforms together doesn't create any interaction effects
+           - Using Facebook doesn't make you spend MORE time on Instagram than you otherwise would
+           - Big caveat as social networks can often drive cross-platform usage (e.g., YouTube links from Facebook)
+
+                    
+        ##### OLS-Specific:
+           - We simplify categories by taking the mid-point of each category (e.g. treat "<2 hours" as exactly 1 hour, "2-4 hours" as exactly 3 hours)
+           - We convert categories to midpoint numbers for easier interpretation
+           - Someone spending 1.9 hours is treated the same as someone spending 0.1 hours
+
+                    
+        ##### Ordinal Regression-Specific:
+           - The effect of each platform is consistent across all time thresholds
+           - If Facebook doubles your odds of >2 hours vs <2 hours, it also doubles odds of >4 hours vs 2-4 hours
+           - Some platforms might have different effects at different usage levels
+
+        ### Some Key Limitations to Keep in Mind:
+        - **Population Averages Only**: Results show average patterns, not individual behavior
+        - **Ceiling Effects**: The "4+ hours" category has no upper limit, which can distort estimates
+        - **Small Samples**: Some platforms (Instagram: n=3) have very few users, making estimates uncertain
+        """)
+
+    # Fourth row: Level of poor connection
+    st.markdown("---")
     st.subheader('Level of poor connection')
 
     if 'Q27' in df_tab2.columns:
