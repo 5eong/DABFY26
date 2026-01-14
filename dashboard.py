@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from platform_helper import create_platform_analysis
@@ -83,7 +84,7 @@ df, df_fy25, questions_df = load_data()
 st.title('📊 Survey Demographics Dashboard')
 
 # Create tabs
-tab1, tab2, tab3, tab4 = st.tabs(['Demographics', 'Digital Behavior & Engagement', 'Internet Usage Behaviors', 'Brand & Product Awareness'])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(['Demographics', 'Digital Behavior & Engagement', 'Internet Usage Behaviors', 'Brand & Product Awareness', 'Location Impact Analysis'])
 
 with tab1:
     # Demographics metrics
@@ -450,39 +451,87 @@ with tab2:
     st.markdown(f"**Sample Size: n = {len(df_tab2)}**")
     st.markdown("---")
 
-    # First row: Phone sharing and Social Media Channels
+    # First row: Time of Day and Hours per day
     col1, col2 = st.columns(2)
 
     with col1:
-        # Q07: Who do they share their phone with?
-        st.subheader('Who do they share their phone with?')
-        q07_labels = {
-            'Q07_a': 'Children',
-            'Q07_b': 'Spouse',
-            'Q07_c': 'Cousin',
-            'Q07_d': 'Parents',
-            'Q07_e': 'Others',
-            'Q07_f': "I don't share with anyone"
+        # Q11: Time of Day Usage Pattern
+        st.subheader('Internet Usage by Time of Day')
+
+        q11_labels = {
+            'Q11_a': 'Morning',
+            'Q11_b': 'Afternoon',
+            'Q11_c': 'Evening',
+            'Q11_d': 'Night'
         }
-        q07_data = []
-        for col_name, label in q07_labels.items():
+
+        q11_data = []
+        time_order = ['Morning', 'Afternoon', 'Evening', 'Night']
+
+        for col_name, label in q11_labels.items():
             if col_name in df_tab2.columns:
                 count = (df_tab2[col_name] == 1.0).sum()
-                q07_data.append({'Category': label, 'Count': count})
+                pct = (count / len(df_tab2) * 100) if len(df_tab2) > 0 else 0
+                q11_data.append({
+                    'Time of Day': label,
+                    'Count': count,
+                    'Percentage': pct
+                })
 
-        q07_df = pd.DataFrame(q07_data)
+        q11_df = pd.DataFrame(q11_data)
+        q11_df['Time of Day'] = pd.Categorical(q11_df['Time of Day'], categories=time_order, ordered=True)
+        q11_df = q11_df.sort_values('Time of Day')
 
-        fig_q07 = px.pie(
-            q07_df,
-            names='Category',
-            values='Count',
-            hole=0.4,
-            color_discrete_sequence=px.colors.qualitative.Pastel
+        fig_q11 = go.Figure()
+
+        fig_q11.add_trace(go.Scatter(
+            x=q11_df['Time of Day'],
+            y=q11_df['Percentage'],
+            mode='lines+markers+text',
+            line=dict(color='#4575b4', width=3),
+            marker=dict(size=12, color=q11_df['Percentage'], colorscale='Viridis',
+                       showscale=True, colorbar=dict(title="Usage %", thickness=15, len=0.7),
+                       line=dict(color='#333', width=2)),
+            text=q11_df['Percentage'].apply(lambda x: f'{x:.1f}%'),
+            textposition='top center',
+            textfont=dict(size=12),
+            hovertemplate='%{x}<br>%{y:.1f}%<extra></extra>'
+        ))
+
+        fig_q11.update_layout(
+            xaxis_title='Time of Day',
+            yaxis_title='Percentage of Users (%)',
+            height=400,
+            yaxis=dict(range=[0, max(q11_df['Percentage']) * 1.15], showgrid=True, gridcolor='#e0e0e0'),
+            xaxis=dict(categoryorder='array', categoryarray=time_order),
+            plot_bgcolor='rgba(0,0,0,0)',
+            showlegend=False
         )
-        fig_q07.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
-        st.plotly_chart(fig_q07, use_container_width=True, key='phone_sharing_pie')
+
+        st.plotly_chart(fig_q11, use_container_width=True, key='time_of_day_line')
 
     with col2:
+        # Q28: Hours per day
+        st.subheader('Hours per day')
+        if 'Q28' in df_tab2.columns:
+            q28_counts = df_tab2['Q28'].value_counts().reset_index()
+            q28_counts.columns = ['Hours', 'Count']
+
+            fig_q28 = px.pie(
+                q28_counts,
+                names='Hours',
+                values='Count',
+                hole=0.4,
+                color_discrete_sequence=px.colors.qualitative.Pastel
+            )
+            fig_q28.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
+            st.plotly_chart(fig_q28, use_container_width=True, key='hours_per_day_pie')
+
+    # Second row: Social Media Channels and Platform Usage by Hour
+    st.markdown("---")
+    col3, col4 = st.columns(2)
+
+    with col3:
         # Q10: Which social media channels are they using day to day? (UpSet plot)
         st.subheader('Which social media channels are they using day to day?')
         q10_labels = {
@@ -645,344 +694,135 @@ with tab2:
 
         st.plotly_chart(fig_q10, use_container_width=True, key='social_media_upset')
 
-    # Second row: Time of Day and Hours per day
-    col3, col4 = st.columns(2)
+    with col4:
+        # Platform Usage by Hour - stacked bar chart
+        st.subheader('Platform Usage by Hour')
 
-    with col3:
-        # Q11: Time of Day Usage Pattern
-        st.subheader('Internet Usage by Time of Day')
+        try:
+            usage_stats_df = pd.read_csv('clean/platform_usage_statistics.csv')
 
-        q11_labels = {
-            'Q11_a': 'Morning',
-            'Q11_b': 'Afternoon',
-            'Q11_c': 'Evening',
-            'Q11_d': 'Night'
+            fig_platform_time = go.Figure()
+
+            fig_platform_time.add_trace(go.Bar(
+                name='<2 hours',
+                x=usage_stats_df['Platform'],
+                y=usage_stats_df['Pct_LessThan2h'],
+                marker_color='#2ecc71',
+                hovertemplate='%{x}<br><2 hours: %{y:.1f}%<extra></extra>'
+            ))
+
+            fig_platform_time.add_trace(go.Bar(
+                name='2-4 hours',
+                x=usage_stats_df['Platform'],
+                y=usage_stats_df['Pct_2to4h'],
+                marker_color='#f39c12',
+                hovertemplate='%{x}<br>2-4 hours: %{y:.1f}%<extra></extra>'
+            ))
+
+            fig_platform_time.add_trace(go.Bar(
+                name='>4 hours',
+                x=usage_stats_df['Platform'],
+                y=usage_stats_df['Pct_MoreThan4h'],
+                marker_color='#e74c3c',
+                hovertemplate='%{x}<br>>4 hours: %{y:.1f}%<extra></extra>'
+            ))
+
+            fig_platform_time.update_layout(
+                barmode='stack',
+                xaxis_title='',
+                yaxis_title='% of Platform Users',
+                height=500,
+                legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5),
+                margin=dict(l=10, r=10, t=40, b=10)
+            )
+            st.plotly_chart(fig_platform_time, use_container_width=True, key='platform_time_distribution')
+
+        except FileNotFoundError:
+            st.warning('Platform usage data not found. Please run `python platform_time_estimation.py` first.')
+
+    # Third row: Phone sharing and Poor connection
+    st.markdown("---")
+    col5, col6 = st.columns(2)
+
+    with col5:
+        # Q07: Who do they share their phone with?
+        st.subheader('Who do they share their phone with?')
+        q07_labels = {
+            'Q07_a': 'Children',
+            'Q07_b': 'Spouse',
+            'Q07_c': 'Cousin',
+            'Q07_d': 'Parents',
+            'Q07_e': 'Others',
+            'Q07_f': "I don't share with anyone"
         }
-
-        # Prepare data for time series line plot
-        q11_data = []
-        time_order = ['Morning', 'Afternoon', 'Evening', 'Night']
-
-        for col_name, label in q11_labels.items():
+        q07_data = []
+        for col_name, label in q07_labels.items():
             if col_name in df_tab2.columns:
                 count = (df_tab2[col_name] == 1.0).sum()
-                pct = (count / len(df_tab2) * 100) if len(df_tab2) > 0 else 0
-                q11_data.append({
-                    'Time of Day': label,
-                    'Count': count,
-                    'Percentage': pct
-                })
+                q07_data.append({'Category': label, 'Count': count})
 
-        q11_df = pd.DataFrame(q11_data)
+        q07_df = pd.DataFrame(q07_data)
 
-        # Sort by time order
-        q11_df['Time of Day'] = pd.Categorical(q11_df['Time of Day'], categories=time_order, ordered=True)
-        q11_df = q11_df.sort_values('Time of Day')
-
-        # Create vertical line plot with time on x-axis and percentage on y-axis
-        import plotly.graph_objects as go
-
-        fig_q11 = go.Figure()
-
-        # Add line trace
-        fig_q11.add_trace(go.Scatter(
-            x=q11_df['Time of Day'],
-            y=q11_df['Percentage'],
-            mode='lines+markers+text',
-            line=dict(color='#4575b4', width=3),
-            marker=dict(
-                size=12,
-                color=q11_df['Percentage'],
-                colorscale='Viridis',
-                showscale=True,
-                colorbar=dict(
-                    title="Usage %",
-                    thickness=15,
-                    len=0.7
-                ),
-                line=dict(color='#333', width=2)
-            ),
-            text=q11_df['Percentage'].apply(lambda x: f'{x:.1f}%'),
-            textposition='top center',
-            textfont=dict(size=12),
-            hovertemplate='%{x}<br>%{y:.1f}%<extra></extra>'
-        ))
-
-        fig_q11.update_layout(
-            xaxis_title='Time of Day',
-            yaxis_title='Percentage of Users (%)',
-            height=400,
-            yaxis=dict(
-                range=[0, max(q11_df['Percentage']) * 1.15],
-                showgrid=True,
-                gridcolor='#e0e0e0'
-            ),
-            xaxis=dict(
-                categoryorder='array',
-                categoryarray=time_order
-            ),
-            plot_bgcolor='rgba(0,0,0,0)',
-            showlegend=False
-        )
-
-        st.plotly_chart(fig_q11, use_container_width=True, key='time_of_day_line')
-
-    with col4:
-        # Q28: Hours per day
-        st.subheader('Hours per day')
-        if 'Q28' in df_tab2.columns:
-            q28_counts = df_tab2['Q28'].value_counts().reset_index()
-            q28_counts.columns = ['Hours', 'Count']
-
-            fig_q28 = px.pie(
-                q28_counts,
-                names='Hours',
-                values='Count',
-                hole=0.4,
-                color_discrete_sequence=px.colors.qualitative.Pastel
-            )
-            fig_q28.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
-            st.plotly_chart(fig_q28, use_container_width=True, key='hours_per_day_pie')
-
-    # Third row: Platform Time Distribution Analysis
-    st.markdown("---")
-    st.subheader('Platform Time Distribution Analysis')
-    st.caption('Statistical models estimating how each platform contributes to total online time. Based on survey responses about platform usage and time spent online.')
-
-    # Load regression results
-    try:
-        # Load ordinal regression results
-        try:
-            ordinal_results_df = pd.read_csv('clean/platform_time_contributions_ordinal.csv')
-        except FileNotFoundError:
-            ordinal_results_df = None
-
-        # Load OLS regression results
-        try:
-            ols_results_df = pd.read_csv('clean/platform_time_contributions_ols.csv')
-        except FileNotFoundError:
-            ols_results_df = None
-
-        # Create two columns for plot and table (50/50 split)
-        dist_col1, dist_col2 = st.columns([1, 1])
-
-        with dist_col1:
-            # Load platform distribution data for stacked bar chart
-            try:
-                platform_dist_df = pd.read_csv('clean/platform_time_distribution.csv')
-
-                # Create stacked bar chart showing distribution across time categories
-                fig_platform_time = go.Figure()
-
-                # Prepare data for stacked bar - normalize to ensure sum = 100%
-                platforms = platform_dist_df['Platform'].tolist()
-                less_than_2_raw = platform_dist_df['Less_than_2_hours_%'].tolist()
-                two_to_four_raw = platform_dist_df['2_to_4_hours_%'].tolist()
-                more_than_4_raw = platform_dist_df['More_than_4_hours_%'].tolist()
-
-                # Normalize to handle rounding and missing data
-                less_than_2 = []
-                two_to_four = []
-                more_than_4 = []
-                for lt2, t2f, mt4 in zip(less_than_2_raw, two_to_four_raw, more_than_4_raw):
-                    total = lt2 + t2f + mt4
-                    if total > 0:
-                        less_than_2.append(lt2 / total * 100)
-                        two_to_four.append(t2f / total * 100)
-                        more_than_4.append(mt4 / total * 100)
-                    else:
-                        less_than_2.append(0)
-                        two_to_four.append(0)
-                        more_than_4.append(0)
-
-                # Add traces for each time category
-                fig_platform_time.add_trace(go.Bar(
-                    name='<2 hours',
-                    x=platforms,
-                    y=less_than_2,
-                    marker_color='#5a8f7b',
-                    text=[f'{val:.1f}%' for val in less_than_2],
-                    textposition='inside',
-                    hovertemplate='%{x}<br><2 hours: %{y:.1f}%<extra></extra>'
-                ))
-
-                fig_platform_time.add_trace(go.Bar(
-                    name='2-4 hours',
-                    x=platforms,
-                    y=two_to_four,
-                    marker_color='#0f4c3a',
-                    text=[f'{val:.1f}%' for val in two_to_four],
-                    textposition='inside',
-                    hovertemplate='%{x}<br>2-4 hours: %{y:.1f}%<extra></extra>'
-                ))
-
-                fig_platform_time.add_trace(go.Bar(
-                    name='>4 hours',
-                    x=platforms,
-                    y=more_than_4,
-                    marker_color='#073d2a',
-                    text=[f'{val:.1f}%' for val in more_than_4],
-                    textposition='inside',
-                    hovertemplate='%{x}<br>>4 hours: %{y:.1f}%<extra></extra>'
-                ))
-
-                fig_platform_time.update_layout(
-                    barmode='stack',
-                    xaxis_title='Platform',
-                    yaxis_title='Percentage of Users (%)',
-                    height=450,
-                    showlegend=True,
-                    legend=dict(
-                        orientation='h',
-                        yanchor='bottom',
-                        y=1.02,
-                        xanchor='right',
-                        x=1
-                    ),
-                    yaxis=dict(range=[0, 100]),
-                    margin=dict(l=10, r=10, t=40, b=10)
-                )
-
-                st.plotly_chart(fig_platform_time, use_container_width=True, key='platform_time_distribution')
-
-            except FileNotFoundError:
-                st.warning('Distribution data not found. Regenerate with platform_time_estimation.py')
-
-        with dist_col2:
-            st.markdown('**OLS Time Estimates (Hours)**')
-
-            # Prepare display dataframe with OLS results
-            if ols_results_df is not None and 'Time_Contribution_Hours' in ols_results_df.columns:
-                # Create display with OLS time contributions
-                display_df = ols_results_df[['Platform', 'Time_Contribution_Hours']].copy()
-
-                # Calculate standard errors for CI if available
-                if 'R_Squared' in ols_results_df.columns and 'Mean_Total_Time' in ols_results_df.columns:
-                    n_samples = 522
-                    r_squared = ols_results_df['R_Squared'].iloc[0]
-                    residual_se = np.sqrt((1 - r_squared) * ols_results_df['Mean_Total_Time'].iloc[0]**2 / n_samples)
-
-                    # Calculate 95% CI
-                    display_df['CI_Lower'] = (display_df['Time_Contribution_Hours'] - 1.96 * residual_se).clip(lower=0)
-                    display_df['CI_Upper'] = display_df['Time_Contribution_Hours'] + 1.96 * residual_se
-
-                    # Format with CI
-                    display_df['Est. Hours (95% CI)'] = display_df.apply(
-                        lambda row: f"{row['Time_Contribution_Hours']:.2f} ({row['CI_Lower']:.2f}-{row['CI_Upper']:.2f})",
-                        axis=1
-                    )
-
-                    display_df = display_df[['Platform', 'Est. Hours (95% CI)']]
-                else:
-                    # Fallback without CI
-                    display_df['Time_Contribution_Hours'] = display_df['Time_Contribution_Hours'].round(2)
-                    display_df.columns = ['Platform', 'Est. Hours']
-
-                st.dataframe(display_df, hide_index=True, use_container_width=True, height=280)
-
-                # Add methodology note for OLS
-                method_label = ols_results_df['Method'].iloc[0] if 'Method' in ols_results_df.columns else 'OLS'
-                r_sq = ols_results_df['R_Squared'].iloc[0] if 'R_Squared' in ols_results_df.columns else 0.17
-
-            else:
-                st.info('OLS regression results not available.')
-
-    except FileNotFoundError:
-        st.warning('Regression results not found. Please run `python platform_time_estimation.py` first.')
-
-    # Show model assumptions and performance metrics below
-    st.markdown("### Model Assumptions & Performance")
-
-    # Add detailed assumptions explanation
-    with st.expander("📋 Model Assumptions (Important to Understand)"):
-        st.markdown("""
-        Both models make key assumptions that affect (i.e. limits) how we interpret the results:
-
-        ##### **Additive Time**: 
-           - We assume time spent on different social media platforms adds up to total online time
-           - If someone uses both Facebook and YouTube, their total time is roughly Facebook time + YouTube time
-
-                    
-        ##### **Consistent User Behavior**: 
-           - Each social media platform contributes similarly across different types of users
-           - Different user categories (e.g. older versus young) have similar patterns of platform usage
-           - If only young people use TikTok heavily, but older people use it lightly, the model "averages" across both populations
-
-                    
-        ##### **No Major Interactions**: 
-           - Using multiple social media platforms together doesn't create any interaction effects
-           - Using Facebook doesn't make you spend MORE time on Instagram than you otherwise would
-           - Big caveat as social networks can often drive cross-platform usage (e.g., YouTube links from Facebook)
-
-                    
-        ##### OLS-Specific:
-           - We simplify categories by taking the mid-point of each category (e.g. treat "<2 hours" as exactly 1 hour, "2-4 hours" as exactly 3 hours)
-           - We convert categories to midpoint numbers for easier interpretation
-           - Someone spending 1.9 hours is treated the same as someone spending 0.1 hours
-
-                    
-        ##### Ordinal Regression-Specific:
-           - The effect of each platform is consistent across all time thresholds
-           - If Facebook doubles your odds of >2 hours vs <2 hours, it also doubles odds of >4 hours vs 2-4 hours
-           - Some platforms might have different effects at different usage levels
-
-        ### Some Key Limitations to Keep in Mind:
-        - **Population Averages Only**: Results show average patterns, not individual behavior
-        - **Ceiling Effects**: The "4+ hours" category has no upper limit, which can distort estimates
-        - **Small Samples**: Some platforms (Instagram: n=3) have very few users, making estimates uncertain
-        """)
-
-    # Fourth row: Level of poor connection
-    st.markdown("---")
-    st.subheader('Level of poor connection')
-
-    if 'Q27' in df_tab2.columns:
-        q27_counts = df_tab2['Q27'].value_counts().reset_index()
-        q27_counts.columns = ['Connection Level', 'Count']
-
-        # Capitalize first letter and add line breaks for better display
-        q27_counts['Connection Level'] = q27_counts['Connection Level'].str.capitalize()
-
-        # Split long labels intelligently at word boundaries
-        def split_label(text, max_len=15):
-            if len(text) <= max_len:
-                return text
-
-            words = text.split(' ')
-            lines = []
-            current_line = []
-            current_length = 0
-
-            for word in words:
-                # Check if adding this word exceeds the limit
-                if current_length + len(word) + (1 if current_line else 0) > max_len:
-                    if current_line:  # Save current line and start new one
-                        lines.append(' '.join(current_line))
-                        current_line = [word]
-                        current_length = len(word)
-                    else:  # Single word is too long, add it anyway
-                        lines.append(word)
-                        current_length = 0
-                else:
-                    current_line.append(word)
-                    current_length += len(word) + (1 if len(current_line) > 1 else 0)
-
-            if current_line:
-                lines.append(' '.join(current_line))
-
-            return '<br>'.join(lines)
-
-        q27_counts['Connection Level'] = q27_counts['Connection Level'].apply(split_label)
-
-        fig_q27 = px.pie(
-            q27_counts,
-            names='Connection Level',
+        fig_q07 = px.pie(
+            q07_df,
+            names='Category',
             values='Count',
             hole=0.4,
             color_discrete_sequence=px.colors.qualitative.Pastel
         )
-        fig_q27.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
-        st.plotly_chart(fig_q27, use_container_width=True, key='connection_level_pie')
+        fig_q07.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
+        st.plotly_chart(fig_q07, use_container_width=True, key='phone_sharing_pie')
+
+    with col6:
+        # Q27: Level of poor connection
+        st.subheader('Level of poor connection')
+
+        if 'Q27' in df_tab2.columns:
+            q27_counts = df_tab2['Q27'].value_counts().reset_index()
+            q27_counts.columns = ['Connection Level', 'Count']
+
+            # Capitalize first letter and add line breaks for better display
+            q27_counts['Connection Level'] = q27_counts['Connection Level'].str.capitalize()
+
+            # Split long labels intelligently at word boundaries
+            def split_label(text, max_len=15):
+                if len(text) <= max_len:
+                    return text
+
+                words = text.split(' ')
+                lines = []
+                current_line = []
+                current_length = 0
+
+                for word in words:
+                    if current_length + len(word) + (1 if current_line else 0) > max_len:
+                        if current_line:
+                            lines.append(' '.join(current_line))
+                            current_line = [word]
+                            current_length = len(word)
+                        else:
+                            lines.append(word)
+                            current_length = 0
+                    else:
+                        current_line.append(word)
+                        current_length += len(word) + (1 if len(current_line) > 1 else 0)
+
+                if current_line:
+                    lines.append(' '.join(current_line))
+
+                return '<br>'.join(lines)
+
+            q27_counts['Connection Level'] = q27_counts['Connection Level'].apply(split_label)
+
+            fig_q27 = px.pie(
+                q27_counts,
+                names='Connection Level',
+                values='Count',
+                hole=0.4,
+                color_discrete_sequence=px.colors.qualitative.Pastel
+            )
+            fig_q27.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
+            st.plotly_chart(fig_q27, use_container_width=True, key='connection_level_pie')
 
 
 with tab3:
@@ -2079,3 +1919,403 @@ with tab4:
             st.plotly_chart(fig_nps, use_container_width=True, key='nps_by_product_chart')
     else:
         st.info('NPS data (Q40) not available in the dataset.')
+
+with tab5:
+    st.header('Location Impact Analysis')
+
+    # Load township mapping CSVs for each product
+    @st.cache_data
+    def load_township_mappings():
+        mighty_df = pd.read_csv('mighty.csv')
+        pheonix_df = pd.read_csv('pheonix.csv')
+        sun_kissed_df = pd.read_csv('sun_kissed.csv')
+
+        # Extract township lists for each product
+        mighty_both = mighty_df['Both'].dropna().str.strip().tolist()
+        mighty_digital = mighty_df['Direct'].dropna().str.strip().tolist()  # "Direct" column contains Digital-only townships
+
+        pheonix_both = pheonix_df['Both'].dropna().str.strip().tolist()
+        pheonix_digital = pheonix_df['Direct'].dropna().str.strip().tolist()
+
+        sun_kissed_both = sun_kissed_df['Both'].dropna().str.strip().tolist()
+        sun_kissed_digital = sun_kissed_df['Direct'].dropna().str.strip().tolist()
+
+        return {
+            'mighty': {'both': mighty_both, 'digital': mighty_digital},
+            'pheonix': {'both': pheonix_both, 'digital': pheonix_digital},
+            'sun_kissed': {'both': sun_kissed_both, 'digital': sun_kissed_digital}
+        }
+
+    township_mappings = load_township_mappings()
+
+    # Product definitions
+    product_info = {
+        'Phoenix (EM/Zarmani)': {
+            'heard_col': 'Q31_b',
+            'used_col': 'Q33_b',
+            'townships': township_mappings['pheonix']
+        },
+        'Mighty (Trichoderma/Barhmati)': {
+            'heard_col': 'Q31_c',
+            'used_col': 'Q33_c',
+            'townships': township_mappings['mighty']
+        },
+        'Sun-kissed': {
+            'heard_col': 'Q31_e',
+            'used_col': 'Q33_h',
+            'townships': township_mappings['sun_kissed']
+        }
+    }
+
+    # Use full dataset for this analysis
+    df_tab5 = df.copy()
+
+    st.markdown(f"**Sample Size: n = {len(df_tab5)}**")
+    st.markdown("---")
+
+    # Helper function to classify township and calculate metrics
+    def calculate_location_metrics(df_filtered, product_config):
+        """Calculate awareness metrics for Both vs Digital-only townships"""
+        both_townships = product_config['townships']['both']
+        digital_townships = product_config['townships']['digital']
+
+        heard_col = product_config['heard_col']
+        used_col = product_config['used_col']
+
+        # Filter by township groups
+        df_both = df_filtered[df_filtered['Township'].isin(both_townships)]
+        df_digital = df_filtered[df_filtered['Township'].isin(digital_townships)]
+
+        results = []
+
+        # Calculate metrics for "Both" group
+        if len(df_both) > 0:
+            heard_both_count = (df_both[heard_col] == 1.0).sum() if heard_col in df_both.columns else 0
+            used_both_count = (df_both[used_col] == 1.0).sum() if used_col in df_both.columns else 0
+            heard_both_pct = heard_both_count / len(df_both) * 100 if len(df_both) > 0 else 0
+            used_both_pct = used_both_count / len(df_both) * 100 if len(df_both) > 0 else 0
+            results.append({
+                'Group': 'Both (Direct + Digital)',
+                'Sample Size': len(df_both),
+                'Heard Of (%)': heard_both_pct,
+                'Used (%)': used_both_pct,
+                'Heard Of (Count)': heard_both_count,
+                'Used (Count)': used_both_count
+            })
+
+        # Calculate metrics for "Digital" group
+        if len(df_digital) > 0:
+            heard_digital_count = (df_digital[heard_col] == 1.0).sum() if heard_col in df_digital.columns else 0
+            used_digital_count = (df_digital[used_col] == 1.0).sum() if used_col in df_digital.columns else 0
+            heard_digital_pct = heard_digital_count / len(df_digital) * 100 if len(df_digital) > 0 else 0
+            used_digital_pct = used_digital_count / len(df_digital) * 100 if len(df_digital) > 0 else 0
+            results.append({
+                'Group': 'Digital Only',
+                'Sample Size': len(df_digital),
+                'Heard Of (%)': heard_digital_pct,
+                'Used (%)': used_digital_pct,
+                'Heard Of (Count)': heard_digital_count,
+                'Used (Count)': used_digital_count
+            })
+
+        return pd.DataFrame(results), df_both, df_digital
+
+    # ========== OVERVIEW CHART: All 3 Products ==========
+    st.subheader('Product Awareness & Usage: All Products Overview')
+    st.caption('Percentages are calculated within each respective population (Both or Digital Only)')
+
+    # Calculate metrics for all products
+    all_products_data = []
+    for prod_name, prod_config in product_info.items():
+        metrics_df_temp, _, _ = calculate_location_metrics(df_tab5, prod_config)
+
+        if not metrics_df_temp.empty:
+            for _, row in metrics_df_temp.iterrows():
+                all_products_data.append({
+                    'Product': prod_name.replace(' (EM/Zarmani)', '').replace(' (Trichoderma/Barhmati)', ''),
+                    'Group': row['Group'],
+                    'Heard Of (%)': row['Heard Of (%)'],
+                    'Used (%)': row['Used (%)'],
+                    'Heard Of (Count)': row['Heard Of (Count)'],
+                    'Used (Count)': row['Used (Count)'],
+                    'Sample Size': row['Sample Size']
+                })
+
+    all_products_df = pd.DataFrame(all_products_data)
+
+    if not all_products_df.empty:
+        # Create grouped bar chart with all products - grouped by product (using percentages)
+        fig_overview = go.Figure()
+
+        products_list = all_products_df['Product'].unique()
+
+        # Different color schemes per product (dark for Both, light for Digital)
+        product_colors = {
+            'Mighty': {'both': '#0f4c3a', 'digital': '#5a8f7b'},      # Green shades
+            'Pheonix': {'both': '#1565c0', 'digital': '#64b5f6'},     # Blue shades
+            'Sun-kissed': {'both': '#e65100', 'digital': '#ffb74d'}   # Orange shades
+        }
+
+        # Build x-axis categories: Product + Metric combinations
+        x_categories = []
+        for product in products_list:
+            x_categories.append(f'{product}<br>Heard Of')
+            x_categories.append(f'{product}<br>Used')
+
+        # Prepare data and colors for each location group (percentages)
+        both_values = []
+        digital_values = []
+        both_colors = []
+        digital_colors = []
+
+        for product in products_list:
+            prod_data = all_products_df[all_products_df['Product'] == product]
+            both_row = prod_data[prod_data['Group'] == 'Both (Direct + Digital)']
+            digital_row = prod_data[prod_data['Group'] == 'Digital Only']
+
+            colors = product_colors.get(product, {'both': '#0f4c3a', 'digital': '#5a8f7b'})
+
+            # Heard Of (%)
+            both_values.append(both_row['Heard Of (%)'].values[0] if len(both_row) > 0 else 0)
+            digital_values.append(digital_row['Heard Of (%)'].values[0] if len(digital_row) > 0 else 0)
+            both_colors.append(colors['both'])
+            digital_colors.append(colors['digital'])
+
+            # Used (%)
+            both_values.append(both_row['Used (%)'].values[0] if len(both_row) > 0 else 0)
+            digital_values.append(digital_row['Used (%)'].values[0] if len(digital_row) > 0 else 0)
+            both_colors.append(colors['both'])
+            digital_colors.append(colors['digital'])
+
+        # Add bars for Both (Direct + Digital)
+        fig_overview.add_trace(go.Bar(
+            name='Both (Direct + Digital)',
+            x=x_categories,
+            y=both_values,
+            text=[f"{v:.1f}%" for v in both_values],
+            textposition='outside',
+            marker_color=both_colors
+        ))
+
+        # Add bars for Digital Only
+        fig_overview.add_trace(go.Bar(
+            name='Digital Only',
+            x=x_categories,
+            y=digital_values,
+            text=[f"{v:.1f}%" for v in digital_values],
+            textposition='outside',
+            marker_color=digital_colors
+        ))
+
+        fig_overview.update_layout(
+            barmode='group',
+            xaxis_title='',
+            yaxis_title='Percentage (%)',
+            height=450,
+            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5)
+        )
+        st.plotly_chart(fig_overview, use_container_width=True, key='overview_all_products_chart')
+
+        # Display sample sizes for reference
+        st.caption('Sample sizes by product and location type:')
+        sample_sizes = all_products_df[['Product', 'Group', 'Sample Size']].drop_duplicates()
+        sample_sizes_pivot = sample_sizes.pivot(index='Product', columns='Group', values='Sample Size').reset_index()
+        st.dataframe(sample_sizes_pivot, hide_index=True, use_container_width=True)
+
+    st.markdown('---')
+
+    # ========== DETAILED ANALYSIS: Selected Product ==========
+    st.subheader('Detailed Analysis by Product')
+
+    # Product selector using dropdown
+    selected_product = st.selectbox(
+        'Select Product for Detailed Analysis',
+        list(product_info.keys()),
+        key='tab5_product_select'
+    )
+
+    product_config = product_info[selected_product]
+    metrics_df, df_both, df_digital = calculate_location_metrics(df_tab5, product_config)
+
+    if not metrics_df.empty:
+        # Display sample sizes
+        st.markdown(f"**{selected_product}**")
+        st.markdown(f"- Both (Direct + Digital) townships: n = {len(df_both)}")
+        st.markdown(f"- Digital Only townships: n = {len(df_digital)}")
+
+        st.markdown('---')
+
+        # Expanded Analysis: Other Yetagon Products Awareness
+        st.subheader('Other Yetagon Products Awareness by Location Type')
+        st.caption('Percentages are calculated within each respective population (Both or Digital Only)')
+
+        other_products = {
+            'Q31_a': 'Yetagon Irrigation',
+            'Q31_b': 'Yetagon EM/Zarmani',
+            'Q31_c': 'Yetagon Trichoderma/Barhmati',
+            'Q31_d': 'Yetagon Tele-agronomy',
+            'Q31_e': 'Yetagon Sun-kissed',
+            'Q31_f': 'Yetagon Fish Amino',
+            'Q31_g': 'Po Chat',
+            'Q31_h': 'Messenger',
+            'Q31_i': 'Digital farm practices'
+        }
+
+        other_products_data = []
+
+        for col, label in other_products.items():
+            both_pct = (df_both[col] == 1.0).sum() / len(df_both) * 100 if col in df_both.columns and len(df_both) > 0 else 0
+            digital_pct = (df_digital[col] == 1.0).sum() / len(df_digital) * 100 if col in df_digital.columns and len(df_digital) > 0 else 0
+
+            other_products_data.append({
+                'Product': label,
+                'Both (Direct + Digital)': both_pct,
+                'Digital Only': digital_pct,
+                'Difference': both_pct - digital_pct
+            })
+
+        other_products_df = pd.DataFrame(other_products_data)
+
+        # Create grouped bar chart for other products (percentages)
+        fig_other_products = go.Figure()
+
+        fig_other_products.add_trace(go.Bar(
+            name='Both (Direct + Digital)',
+            x=other_products_df['Product'],
+            y=other_products_df['Both (Direct + Digital)'],
+            text=[f"{v:.1f}%" for v in other_products_df['Both (Direct + Digital)']],
+            textposition='outside',
+            marker_color='#0f4c3a'
+        ))
+
+        fig_other_products.add_trace(go.Bar(
+            name='Digital Only',
+            x=other_products_df['Product'],
+            y=other_products_df['Digital Only'],
+            text=[f"{v:.1f}%" for v in other_products_df['Digital Only']],
+            textposition='outside',
+            marker_color='#8fc1e3'
+        ))
+
+        fig_other_products.update_layout(
+            barmode='group',
+            xaxis_title='',
+            yaxis_title='Percentage (%)',
+            height=500,
+            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+            xaxis={'tickangle': -45}
+        )
+        st.plotly_chart(fig_other_products, use_container_width=True, key='other_products_location_chart')
+
+        st.markdown('---')
+
+        # Brand Awareness by Location Type
+        st.subheader('Brand Awareness by Location Type')
+        st.caption('Percentages are calculated within each respective population (Both or Digital Only)')
+
+        brand_labels = {
+            'Q36_a': 'Awba',
+            'Q36_b': 'Golden Lion',
+            'Q36_c': 'Armo',
+            'Q36_d': 'MWD-Shan Maw',
+            'Q36_e': 'Farmer Phoe Wa',
+            'Q36_f': 'Pyi Htaung Su',
+            'Q36_g': 'Great Tiger',
+            'Q36_h': 'Hatake',
+            'Q36_i': 'Ywat Lwint',
+            'Q36_j': 'Pyan Lwar',
+            'Q36_k': 'Doh Kyay Let',
+            'Q36_l': 'Eco-Vital Bio-stimulant',
+            'Q36_m': 'Other'
+        }
+
+        brand_data = []
+
+        for col, label in brand_labels.items():
+            both_pct = (df_both[col] == 1.0).sum() / len(df_both) * 100 if col in df_both.columns and len(df_both) > 0 else 0
+            digital_pct = (df_digital[col] == 1.0).sum() / len(df_digital) * 100 if col in df_digital.columns and len(df_digital) > 0 else 0
+
+            brand_data.append({
+                'Brand': label,
+                'Both (Direct + Digital)': both_pct,
+                'Digital Only': digital_pct,
+                'Difference': both_pct - digital_pct
+            })
+
+        brand_df = pd.DataFrame(brand_data)
+
+        # Sort by average awareness
+        brand_df['Average'] = (brand_df['Both (Direct + Digital)'] + brand_df['Digital Only']) / 2
+        brand_df = brand_df.sort_values('Average', ascending=False)
+
+        # Create grouped bar chart for brands (percentages)
+        fig_brands = go.Figure()
+
+        fig_brands.add_trace(go.Bar(
+            name='Both (Direct + Digital)',
+            x=brand_df['Brand'],
+            y=brand_df['Both (Direct + Digital)'],
+            text=[f"{v:.1f}%" for v in brand_df['Both (Direct + Digital)']],
+            textposition='outside',
+            marker_color='#0f4c3a'
+        ))
+
+        fig_brands.add_trace(go.Bar(
+            name='Digital Only',
+            x=brand_df['Brand'],
+            y=brand_df['Digital Only'],
+            text=[f"{v:.1f}%" for v in brand_df['Digital Only']],
+            textposition='outside',
+            marker_color='#8fc1e3'
+        ))
+
+        fig_brands.update_layout(
+            barmode='group',
+            xaxis_title='',
+            yaxis_title='Percentage (%)',
+            height=500,
+            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+            xaxis={'tickangle': -45}
+        )
+        st.plotly_chart(fig_brands, use_container_width=True, key='brands_location_chart')
+
+        st.markdown('---')
+
+        # Summary Table
+        st.subheader('Summary: Difference in Awareness (Both - Digital Only)')
+        st.caption('Positive values indicate higher percentage in Both (Direct + Digital) townships. Percentages calculated within each respective population.')
+
+        # Combine products and brands into summary
+        summary_data = []
+
+        for _, row in other_products_df.iterrows():
+            summary_data.append({
+                'Category': 'Yetagon Product',
+                'Item': row['Product'],
+                'Both (%)': row['Both (Direct + Digital)'],
+                'Digital Only (%)': row['Digital Only'],
+                'Difference (pp)': row['Difference']
+            })
+
+        for _, row in brand_df.iterrows():
+            summary_data.append({
+                'Category': 'Brand',
+                'Item': row['Brand'],
+                'Both (%)': row['Both (Direct + Digital)'],
+                'Digital Only (%)': row['Digital Only'],
+                'Difference (pp)': row['Difference']
+            })
+
+        summary_df = pd.DataFrame(summary_data)
+        summary_df = summary_df.sort_values('Difference (pp)', ascending=False)
+
+        # Format the dataframe for display
+        summary_display = summary_df.copy()
+        summary_display['Both (%)'] = summary_display['Both (%)'].apply(lambda x: f"{x:.1f}%")
+        summary_display['Digital Only (%)'] = summary_display['Digital Only (%)'].apply(lambda x: f"{x:.1f}%")
+        summary_display['Difference (pp)'] = summary_display['Difference (pp)'].apply(lambda x: f"{x:+.1f}")
+
+        st.dataframe(summary_display, hide_index=True, use_container_width=True)
+
+    else:
+        st.warning('No data available for the selected product and filters. Please check if townships in the mapping files match the survey data.')
