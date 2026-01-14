@@ -2510,22 +2510,39 @@ with tab4:
                         product_users = nps_data[nps_data[product_col] == 1.0]
 
                         if len(product_users) > 0 and 'Q40' in product_users.columns:
-                            # Count each score from 0-10
-                            score_counts = {}
-                            for score in range(11):
-                                score_counts[str(score)] = (product_users['Q40'] == score).sum()
+                            # Filter to only users with non-null Q40 scores
+                            product_users_with_scores = product_users[product_users['Q40'].notna()]
 
-                            # Calculate average
-                            avg_score = product_users['Q40'].mean()
+                            if len(product_users_with_scores) > 0:
+                                # Count each score from 0-10
+                                score_counts = {}
+                                for score in range(11):
+                                    score_counts[str(score)] = (product_users_with_scores['Q40'] == score).sum()
 
-                            row_data = {'Product': product_name}
-                            row_data.update(score_counts)
-                            row_data['Average'] = avg_score
-                            nps_table_data.append(row_data)
+                                # Calculate average (only on non-null values)
+                                avg_score = product_users_with_scores['Q40'].mean()
+
+                                row_data = {'Product': product_name}
+                                row_data.update(score_counts)
+                                row_data['Average'] = avg_score
+                                nps_table_data.append(row_data)
 
                 nps_table_df = pd.DataFrame(nps_table_data)
 
                 if not nps_table_df.empty:
+                    # Identify score columns that have at least one non-zero count
+                    score_cols = [str(i) for i in range(11)]
+                    cols_to_keep = ['Product']
+
+                    for col in score_cols:
+                        if col in nps_table_df.columns and nps_table_df[col].sum() > 0:
+                            cols_to_keep.append(col)
+
+                    cols_to_keep.append('Average')
+
+                    # Filter to only needed columns
+                    nps_table_df = nps_table_df[cols_to_keep]
+
                     # Format the average column to 2 decimal places
                     nps_table_df['Average'] = nps_table_df['Average'].apply(lambda x: f'{x:.2f}')
 
