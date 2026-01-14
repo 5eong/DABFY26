@@ -136,48 +136,102 @@ with tab1:
     else:
         col5.metric('Avg NPS Score', 'N/A')
 
+    # Apply same filters to FY25 data for Demographics tab
+    fy25_demo_filtered = apply_filters(df_fy25, demo_filters)
+
     # First row: Regional Distribution (pie) and Age Distribution (bar)
     demo_col1, demo_col2 = st.columns(2)
 
     with demo_col1:
         st.subheader('Regional Distribution')
-        region_counts = df_demo['Region'].value_counts().reset_index()
-        region_counts.columns = ['Region', 'Count']
+        demo_col1a, demo_col1b = st.columns(2)
 
-        fig_region = px.pie(
-            region_counts,
-            names='Region',
-            values='Count',
-            hole=0.4,
-            color_discrete_sequence=px.colors.qualitative.Pastel
-        )
-        fig_region.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
-        st.plotly_chart(fig_region, use_container_width=True, key='region_pie_chart')
+        with demo_col1a:
+            st.markdown('**FY25**')
+            # FY25 uses Q04 for region, FY26 uses 'Region'
+            fy25_region_col = 'Q04' if 'Q04' in fy25_demo_filtered.columns else 'Region'
+            if fy25_region_col in fy25_demo_filtered.columns:
+                region_counts_fy25 = fy25_demo_filtered[fy25_region_col].value_counts().reset_index()
+                region_counts_fy25.columns = ['Region', 'Count']
+
+                fig_region_fy25 = px.pie(
+                    region_counts_fy25,
+                    names='Region',
+                    values='Count',
+                    hole=0.4,
+                    color_discrete_sequence=px.colors.qualitative.Pastel
+                )
+                fig_region_fy25.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
+                fig_region_fy25.update_layout(height=350, showlegend=False, margin=dict(t=10, b=10, l=10, r=10))
+                st.plotly_chart(fig_region_fy25, use_container_width=True, key='region_pie_chart_fy25')
+
+        with demo_col1b:
+            st.markdown('**FY26**')
+            region_counts = df_demo['Region'].value_counts().reset_index()
+            region_counts.columns = ['Region', 'Count']
+
+            fig_region = px.pie(
+                region_counts,
+                names='Region',
+                values='Count',
+                hole=0.4,
+                color_discrete_sequence=px.colors.qualitative.Pastel
+            )
+            fig_region.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
+            fig_region.update_layout(height=350, showlegend=False, margin=dict(t=10, b=10, l=10, r=10))
+            st.plotly_chart(fig_region, use_container_width=True, key='region_pie_chart')
 
     with demo_col2:
         st.subheader('Age Distribution')
-        if 'Q02' in df_demo.columns:
-            age_counts = df_demo['Q02'].value_counts().reset_index()
-            age_counts.columns = ['Age Group', 'Count']
-            # Sort by age order
-            age_order = ['Under 20', '20-30', '31-40', '41-50', '51-60', 'Over 60']
-            age_counts['Age Group'] = pd.Categorical(age_counts['Age Group'], categories=age_order, ordered=True)
-            age_counts = age_counts.sort_values('Age Group')
-            age_counts['Percentage'] = (age_counts['Count'] / age_counts['Count'].sum() * 100).round(1)
+        age_order = ['Under 20', '20-30', '31-40', '41-50', '51-60', 'Over 60']
 
-            fig_age = px.bar(
-                age_counts,
-                x='Age Group',
-                y='Count',
-                text='Percentage',
-                color='Count',
-                color_continuous_scale='Oranges'
-            )
-            fig_age.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
+        if 'Q02' in df_demo.columns:
+            # FY26 data
+            age_counts_fy26 = df_demo['Q02'].value_counts().reset_index()
+            age_counts_fy26.columns = ['Age Group', 'Count']
+            age_counts_fy26['Age Group'] = pd.Categorical(age_counts_fy26['Age Group'], categories=age_order, ordered=True)
+            age_counts_fy26 = age_counts_fy26.sort_values('Age Group')
+            age_counts_fy26['Percentage'] = (age_counts_fy26['Count'] / age_counts_fy26['Count'].sum() * 100).round(1)
+
+            # FY25 data
+            age_counts_fy25 = fy25_demo_filtered['Q02'].value_counts().reset_index() if 'Q02' in fy25_demo_filtered.columns else pd.DataFrame()
+            if len(age_counts_fy25) > 0:
+                age_counts_fy25.columns = ['Age Group', 'Count']
+                age_counts_fy25['Age Group'] = pd.Categorical(age_counts_fy25['Age Group'], categories=age_order, ordered=True)
+                age_counts_fy25 = age_counts_fy25.sort_values('Age Group')
+                age_counts_fy25['Percentage'] = (age_counts_fy25['Count'] / age_counts_fy25['Count'].sum() * 100).round(1)
+
+            fig_age = go.Figure()
+
+            # FY26 bars (blue)
+            fig_age.add_trace(go.Bar(
+                x=age_counts_fy26['Age Group'],
+                y=age_counts_fy26['Percentage'],
+                name='FY26',
+                marker_color='#4575b4',
+                text=[f'{p:.1f}%' for p in age_counts_fy26['Percentage']],
+                textposition='outside',
+                hovertemplate='FY26<br>%{x}<br>%{y:.1f}%<extra></extra>'
+            ))
+
+            # FY25 line (red)
+            if len(age_counts_fy25) > 0:
+                fig_age.add_trace(go.Scatter(
+                    x=age_counts_fy25['Age Group'],
+                    y=age_counts_fy25['Percentage'],
+                    name='FY25',
+                    mode='lines+markers',
+                    line=dict(color='#d73027', width=3, dash='dash'),
+                    marker=dict(size=10, color='#d73027'),
+                    hovertemplate='FY25<br>%{x}<br>%{y:.1f}%<extra></extra>'
+                ))
+
             fig_age.update_layout(
-                showlegend=False,
+                showlegend=True,
+                legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
                 xaxis_title='',
-                yaxis_title=''
+                yaxis_title='Percentage (%)',
+                xaxis=dict(categoryorder='array', categoryarray=age_order)
             )
             st.plotly_chart(fig_age, use_container_width=True, key='age_bar_chart')
 
@@ -195,7 +249,7 @@ with tab1:
             'Q09_f': 'Others'
         }
 
-        # Prepare data for UpSet plot
+        # Prepare data for UpSet plot - FY26
         q09_cols = [col for col in q09_labels.keys() if col in df_demo.columns]
 
         # Create a DataFrame for upset plot - need to convert to boolean
@@ -207,18 +261,33 @@ with tab1:
         rename_map = {col: q09_labels[col] for col in q09_cols if col in q09_labels}
         upset_data = upset_data.rename(columns=rename_map)
 
-        # Count combinations
+        # Count combinations for FY26
         from collections import Counter
-        combinations = []
+        combinations_fy26 = []
         for idx, row in upset_data.iterrows():
-            combo = tuple(col for col in upset_data.columns if row[col])
-            if combo:  # Only include if at least one source is selected
-                combinations.append(combo)
+            combo = tuple(sorted(col for col in upset_data.columns if row[col]))
+            if combo:
+                combinations_fy26.append(combo)
 
-        combo_counts = Counter(combinations)
+        combo_counts_fy26 = Counter(combinations_fy26)
 
-        # Get top 15 combinations
-        top_combos = sorted(combo_counts.items(), key=lambda x: x[1], reverse=True)[:15]
+        # Prepare FY25 data for the same combinations
+        q09_cols_fy25 = [col for col in q09_labels.keys() if col in fy25_demo_filtered.columns]
+        upset_data_fy25 = fy25_demo_filtered[q09_cols_fy25].copy()
+        upset_data_fy25 = upset_data_fy25.fillna(0)
+        upset_data_fy25 = (upset_data_fy25 == 1.0)
+        upset_data_fy25 = upset_data_fy25.rename(columns=rename_map)
+
+        combinations_fy25 = []
+        for idx, row in upset_data_fy25.iterrows():
+            combo = tuple(sorted(col for col in upset_data_fy25.columns if row[col]))
+            if combo:
+                combinations_fy25.append(combo)
+
+        combo_counts_fy25 = Counter(combinations_fy25)
+
+        # Get top 15 combinations from FY26
+        top_combos = sorted(combo_counts_fy26.items(), key=lambda x: x[1], reverse=True)[:15]
 
         # Create upset-style visualization manually
         import plotly.graph_objects as go
@@ -226,17 +295,22 @@ with tab1:
 
         # Prepare data
         combo_labels = []
-        combo_values = []
-        combo_percentages = []
+        combo_percentages_fy26 = []
+        combo_percentages_fy25 = []
         matrix_data = {col: [] for col in upset_data.columns}
 
-        total_respondents = len(df_demo)
+        total_respondents_fy26 = len(df_demo)
+        total_respondents_fy25 = len(fy25_demo_filtered)
 
         for combo, count in top_combos:
             combo_labels.append(' & '.join(combo) if len(combo) <= 2 else f"{len(combo)} sources")
-            combo_values.append(count)
-            pct = (count / total_respondents * 100) if total_respondents > 0 else 0
-            combo_percentages.append(pct)
+            pct_fy26 = (count / total_respondents_fy26 * 100) if total_respondents_fy26 > 0 else 0
+            combo_percentages_fy26.append(pct_fy26)
+
+            # Get FY25 count for the same combination
+            count_fy25 = combo_counts_fy25.get(combo, 0)
+            pct_fy25 = (count_fy25 / total_respondents_fy25 * 100) if total_respondents_fy25 > 0 else 0
+            combo_percentages_fy25.append(pct_fy25)
 
             for col in upset_data.columns:
                 matrix_data[col].append(1 if col in combo else 0)
@@ -249,17 +323,31 @@ with tab1:
             specs=[[{"type": "bar"}], [{"type": "scatter"}]]
         )
 
-        # Top plot: bar chart of combination percentages
+        # Top plot: bar chart of combination percentages (FY26)
         fig_q09.add_trace(
             go.Bar(
-                x=list(range(len(combo_percentages))),
-                y=combo_percentages,
+                x=list(range(len(combo_percentages_fy26))),
+                y=combo_percentages_fy26,
                 marker_color='#4575b4',
-                showlegend=False,
+                name='FY26',
                 width=0.6,
-                text=[f'{p:.1f}%' for p in combo_percentages],
+                text=[f'{p:.1f}%' for p in combo_percentages_fy26],
                 textposition='outside',
-                hovertemplate='%{y:.1f}%<extra></extra>'
+                hovertemplate='FY26<br>%{y:.1f}%<extra></extra>'
+            ),
+            row=1, col=1
+        )
+
+        # Overlay FY25 line on top of bars
+        fig_q09.add_trace(
+            go.Scatter(
+                x=list(range(len(combo_percentages_fy25))),
+                y=combo_percentages_fy25,
+                mode='lines+markers',
+                name='FY25',
+                line=dict(color='#d73027', width=2, dash='dash'),
+                marker=dict(size=8, color='#d73027'),
+                hovertemplate='FY25<br>%{y:.1f}%<extra></extra>'
             ),
             row=1, col=1
         )
@@ -267,17 +355,15 @@ with tab1:
         # Bottom plot: matrix showing which sources are in each combination
         # Add connecting lines first
         for j in range(len(matrix_data[list(upset_data.columns)[0]])):
-            # Find which sources are active for this combination
             active_indices = [i for i, col in enumerate(upset_data.columns) if matrix_data[col][j] == 1]
 
             if len(active_indices) > 1:
-                # Draw connecting line
                 fig_q09.add_trace(
                     go.Scatter(
                         x=[j] * len(active_indices),
                         y=active_indices,
                         mode='lines',
-                        line=dict(color='#d73027', width=2),
+                        line=dict(color='#4575b4', width=2),
                         showlegend=False,
                         hoverinfo='skip'
                     ),
@@ -299,7 +385,7 @@ with tab1:
                     x=x_vals,
                     y=y_vals,
                     mode='markers',
-                    marker=dict(size=10, color='#d73027', line=dict(color='#ffffff', width=1)),
+                    marker=dict(size=10, color='#4575b4', line=dict(color='#ffffff', width=1)),
                     showlegend=False,
                     name=col,
                     hovertemplate=f'{col}<extra></extra>'
@@ -311,14 +397,14 @@ with tab1:
         fig_q09.update_xaxes(
             showticklabels=False,
             showgrid=False,
-            range=[-0.5, len(combo_values) - 0.5],
+            range=[-0.5, len(combo_percentages_fy26) - 0.5],
             row=1, col=1
         )
         fig_q09.update_xaxes(
             showticklabels=False,
             showgrid=False,
             zeroline=False,
-            range=[-0.5, len(combo_values) - 0.5],
+            range=[-0.5, len(combo_percentages_fy26) - 0.5],
             row=2, col=1
         )
         fig_q09.update_yaxes(
@@ -337,8 +423,9 @@ with tab1:
 
         fig_q09.update_layout(
             height=500,
-            showlegend=False,
-            margin=dict(l=10, r=10, t=10, b=10),
+            showlegend=True,
+            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+            margin=dict(l=10, r=10, t=30, b=10),
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)'
         )
@@ -347,33 +434,57 @@ with tab1:
 
     with demo_col4:
         st.subheader('Mobile Top-up Amount per Week')
-        if 'Q29' in df_demo.columns:
-            q29_counts = df_demo['Q29'].value_counts().reset_index()
-            q29_counts.columns = ['Top-up Amount', 'Count']
 
-            # Standardize labels
-            label_mapping = {
-                'Less than 3000 MMK': '<3000 MMK',
-                'less than 3000 MMK': '<3000 MMK',
-                'approximately 5000 MMK': '~5000 MMK',
-                'above 10000 MMK': '>10000 MMK',
-                'other': 'Other'
-            }
-            q29_counts['Top-up Amount'] = q29_counts['Top-up Amount'].map(label_mapping).fillna(q29_counts['Top-up Amount'])
+        # Standardize labels
+        label_mapping = {
+            'Less than 3000 MMK': '<3000 MMK',
+            'less than 3000 MMK': '<3000 MMK',
+            'approximately 5000 MMK': '~5000 MMK',
+            'above 10000 MMK': '>10000 MMK',
+            'other': 'Other'
+        }
 
-            fig_q29 = px.pie(
-                q29_counts,
-                names='Top-up Amount',
-                values='Count',
-                hole=0.4,
-                color_discrete_sequence=px.colors.qualitative.Pastel
-            )
-            fig_q29.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
-            st.plotly_chart(fig_q29, use_container_width=True, key='topup_chart')
+        demo_col4a, demo_col4b = st.columns(2)
+
+        with demo_col4a:
+            st.markdown('**FY25**')
+            if 'Q29' in fy25_demo_filtered.columns:
+                q29_counts_fy25 = fy25_demo_filtered['Q29'].value_counts().reset_index()
+                q29_counts_fy25.columns = ['Top-up Amount', 'Count']
+                q29_counts_fy25['Top-up Amount'] = q29_counts_fy25['Top-up Amount'].map(label_mapping).fillna(q29_counts_fy25['Top-up Amount'])
+
+                fig_q29_fy25 = px.pie(
+                    q29_counts_fy25,
+                    names='Top-up Amount',
+                    values='Count',
+                    hole=0.4,
+                    color_discrete_sequence=px.colors.qualitative.Pastel
+                )
+                fig_q29_fy25.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
+                fig_q29_fy25.update_layout(height=350, showlegend=False, margin=dict(t=10, b=10, l=10, r=10))
+                st.plotly_chart(fig_q29_fy25, use_container_width=True, key='topup_chart_fy25')
+
+        with demo_col4b:
+            st.markdown('**FY26**')
+            if 'Q29' in df_demo.columns:
+                q29_counts = df_demo['Q29'].value_counts().reset_index()
+                q29_counts.columns = ['Top-up Amount', 'Count']
+                q29_counts['Top-up Amount'] = q29_counts['Top-up Amount'].map(label_mapping).fillna(q29_counts['Top-up Amount'])
+
+                fig_q29 = px.pie(
+                    q29_counts,
+                    names='Top-up Amount',
+                    values='Count',
+                    hole=0.4,
+                    color_discrete_sequence=px.colors.qualitative.Pastel
+                )
+                fig_q29.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
+                fig_q29.update_layout(height=350, showlegend=False, margin=dict(t=10, b=10, l=10, r=10))
+                st.plotly_chart(fig_q29, use_container_width=True, key='topup_chart')
 
     # Third row: Types of Crops Grown (Co-occurrence Heatmap)
     st.subheader('Crop Co-occurrence Matrix')
-    st.caption('Diagonal shows percentage of farmers growing each crop. Off-diagonal shows percentage of farmers growing both crops.')
+    st.caption('Diagonal shows percentage of farmers growing each crop. Off-diagonal shows percentage of farmers growing both crops. Right heatmap shows FY26 - FY25 difference (green = increase, purple = decrease).')
 
     q06_labels = {
         'Q06_a': 'Rice',
@@ -400,42 +511,82 @@ with tab1:
         crop_cols = list(available_crops.keys())
         crop_names = list(available_crops.values())
 
-        # Initialize matrix
+        # Initialize matrices
         import numpy as np
-        total_respondents = len(df_demo)
-        cooccurrence_matrix = np.zeros((len(crop_cols), len(crop_cols)))
+        total_respondents_fy26 = len(df_demo)
+        total_respondents_fy25 = len(fy25_demo_filtered)
+        cooccurrence_matrix_fy26 = np.zeros((len(crop_cols), len(crop_cols)))
+        cooccurrence_matrix_fy25 = np.zeros((len(crop_cols), len(crop_cols)))
 
         for i, crop1 in enumerate(crop_cols):
             for j, crop2 in enumerate(crop_cols):
                 if i == j:
                     # Diagonal: percentage of farmers growing this crop
-                    count = (df_demo[crop1] == 1.0).sum()
-                    cooccurrence_matrix[i, j] = (count / total_respondents * 100) if total_respondents > 0 else 0
+                    count_fy26 = (df_demo[crop1] == 1.0).sum()
+                    cooccurrence_matrix_fy26[i, j] = (count_fy26 / total_respondents_fy26 * 100) if total_respondents_fy26 > 0 else 0
+
+                    if crop1 in fy25_demo_filtered.columns:
+                        count_fy25 = (fy25_demo_filtered[crop1] == 1.0).sum()
+                        cooccurrence_matrix_fy25[i, j] = (count_fy25 / total_respondents_fy25 * 100) if total_respondents_fy25 > 0 else 0
                 elif i > j:
                     # Lower diagonal: percentage of farmers growing both crops
-                    count = ((df_demo[crop1] == 1.0) & (df_demo[crop2] == 1.0)).sum()
-                    cooccurrence_matrix[i, j] = (count / total_respondents * 100) if total_respondents > 0 else 0
+                    count_fy26 = ((df_demo[crop1] == 1.0) & (df_demo[crop2] == 1.0)).sum()
+                    cooccurrence_matrix_fy26[i, j] = (count_fy26 / total_respondents_fy26 * 100) if total_respondents_fy26 > 0 else 0
+
+                    if crop1 in fy25_demo_filtered.columns and crop2 in fy25_demo_filtered.columns:
+                        count_fy25 = ((fy25_demo_filtered[crop1] == 1.0) & (fy25_demo_filtered[crop2] == 1.0)).sum()
+                        cooccurrence_matrix_fy25[i, j] = (count_fy25 / total_respondents_fy25 * 100) if total_respondents_fy25 > 0 else 0
                 else:
                     # Upper diagonal: set to NaN (will appear white)
-                    cooccurrence_matrix[i, j] = np.nan
+                    cooccurrence_matrix_fy26[i, j] = np.nan
+                    cooccurrence_matrix_fy25[i, j] = np.nan
 
-        # Create heatmap with RdBu colormap (Red to Blue)
-        fig_crops = px.imshow(
-            cooccurrence_matrix,
-            labels=dict(x="Crop", y="Crop", color="Percentage (%)"),
-            x=crop_names,
-            y=crop_names,
-            color_continuous_scale='RdBu_r',  # Red to Blue reversed
-            aspect='auto',
-            text_auto='.1f'
-        )
-        fig_crops.update_layout(
-            xaxis_title='',
-            yaxis_title='',
-            height=600
-        )
-        fig_crops.update_xaxes(side='bottom', tickangle=-45)
-        st.plotly_chart(fig_crops, use_container_width=True, key='crops_heatmap')
+        # Calculate difference matrix (FY26 - FY25)
+        diff_matrix = cooccurrence_matrix_fy26 - cooccurrence_matrix_fy25
+
+        # Create two columns for side-by-side heatmaps
+        heatmap_col1, heatmap_col2 = st.columns(2)
+
+        with heatmap_col1:
+            st.markdown('#### FY26 Co-occurrence')
+            # Create heatmap with RdBu colormap (Red to Blue)
+            fig_crops = px.imshow(
+                cooccurrence_matrix_fy26,
+                labels=dict(x="Crop", y="Crop", color="Percentage (%)"),
+                x=crop_names,
+                y=crop_names,
+                color_continuous_scale='RdBu_r',  # Red to Blue reversed
+                aspect='auto',
+                text_auto='.1f'
+            )
+            fig_crops.update_layout(
+                xaxis_title='',
+                yaxis_title='',
+                height=500
+            )
+            fig_crops.update_xaxes(side='bottom', tickangle=-45)
+            st.plotly_chart(fig_crops, use_container_width=True, key='crops_heatmap')
+
+        with heatmap_col2:
+            st.markdown('#### FY26 - FY25 Difference')
+            # Create difference heatmap with PiYG colormap (Purple to Green)
+            fig_diff = px.imshow(
+                diff_matrix,
+                labels=dict(x="Crop", y="Crop", color="Difference (pp)"),
+                x=crop_names,
+                y=crop_names,
+                color_continuous_scale='PiYG',  # Purple-Yellow-Green (negative=purple, positive=green)
+                aspect='auto',
+                text_auto='.1f',
+                color_continuous_midpoint=0
+            )
+            fig_diff.update_layout(
+                xaxis_title='',
+                yaxis_title='',
+                height=500
+            )
+            fig_diff.update_xaxes(side='bottom', tickangle=-45)
+            st.plotly_chart(fig_diff, use_container_width=True, key='crops_diff_heatmap')
 
 
 with tab2:
@@ -465,74 +616,132 @@ with tab2:
             'Q11_d': 'Night'
         }
 
-        q11_data = []
         time_order = ['Morning', 'Afternoon', 'Evening', 'Night']
 
+        # Apply same filters to FY25 data
+        fy25_tab2_filtered = apply_filters(df_fy25, tab2_filters)
+
+        # FY26 data
+        q11_data_fy26 = []
         for col_name, label in q11_labels.items():
             if col_name in df_tab2.columns:
                 count = (df_tab2[col_name] == 1.0).sum()
                 pct = (count / len(df_tab2) * 100) if len(df_tab2) > 0 else 0
-                q11_data.append({
+                q11_data_fy26.append({
                     'Time of Day': label,
                     'Count': count,
                     'Percentage': pct
                 })
 
-        q11_df = pd.DataFrame(q11_data)
-        q11_df['Time of Day'] = pd.Categorical(q11_df['Time of Day'], categories=time_order, ordered=True)
-        q11_df = q11_df.sort_values('Time of Day')
+        q11_df_fy26 = pd.DataFrame(q11_data_fy26)
+        q11_df_fy26['Time of Day'] = pd.Categorical(q11_df_fy26['Time of Day'], categories=time_order, ordered=True)
+        q11_df_fy26 = q11_df_fy26.sort_values('Time of Day')
+
+        # FY25 data
+        q11_data_fy25 = []
+        for col_name, label in q11_labels.items():
+            if col_name in fy25_tab2_filtered.columns:
+                count = (fy25_tab2_filtered[col_name] == 1.0).sum()
+                pct = (count / len(fy25_tab2_filtered) * 100) if len(fy25_tab2_filtered) > 0 else 0
+                q11_data_fy25.append({
+                    'Time of Day': label,
+                    'Count': count,
+                    'Percentage': pct
+                })
+
+        q11_df_fy25 = pd.DataFrame(q11_data_fy25)
+        q11_df_fy25['Time of Day'] = pd.Categorical(q11_df_fy25['Time of Day'], categories=time_order, ordered=True)
+        q11_df_fy25 = q11_df_fy25.sort_values('Time of Day')
 
         fig_q11 = go.Figure()
 
+        # FY26 line (blue)
         fig_q11.add_trace(go.Scatter(
-            x=q11_df['Time of Day'],
-            y=q11_df['Percentage'],
+            x=q11_df_fy26['Time of Day'],
+            y=q11_df_fy26['Percentage'],
             mode='lines+markers+text',
+            name='FY26',
             line=dict(color='#4575b4', width=3),
-            marker=dict(size=12, color=q11_df['Percentage'], colorscale='Viridis',
-                       showscale=True, colorbar=dict(title="Usage %", thickness=15, len=0.7),
-                       line=dict(color='#333', width=2)),
-            text=q11_df['Percentage'].apply(lambda x: f'{x:.1f}%'),
+            marker=dict(size=10, color='#4575b4', line=dict(color='#333', width=1)),
+            text=q11_df_fy26['Percentage'].apply(lambda x: f'{x:.1f}%'),
             textposition='top center',
-            textfont=dict(size=12),
-            hovertemplate='%{x}<br>%{y:.1f}%<extra></extra>'
+            textfont=dict(size=10),
+            hovertemplate='FY26<br>%{x}<br>%{y:.1f}%<extra></extra>'
         ))
 
+        # FY25 line (red)
+        fig_q11.add_trace(go.Scatter(
+            x=q11_df_fy25['Time of Day'],
+            y=q11_df_fy25['Percentage'],
+            mode='lines+markers+text',
+            name='FY25',
+            line=dict(color='#d73027', width=3, dash='dash'),
+            marker=dict(size=10, color='#d73027', line=dict(color='#333', width=1)),
+            text=q11_df_fy25['Percentage'].apply(lambda x: f'{x:.1f}%'),
+            textposition='bottom center',
+            textfont=dict(size=10),
+            hovertemplate='FY25<br>%{x}<br>%{y:.1f}%<extra></extra>'
+        ))
+
+        max_pct = max(q11_df_fy26['Percentage'].max(), q11_df_fy25['Percentage'].max()) if len(q11_df_fy25) > 0 else q11_df_fy26['Percentage'].max()
         fig_q11.update_layout(
             xaxis_title='Time of Day',
             yaxis_title='Percentage of Users (%)',
             height=400,
-            yaxis=dict(range=[0, max(q11_df['Percentage']) * 1.15], showgrid=True, gridcolor='#e0e0e0'),
+            yaxis=dict(range=[0, max_pct * 1.2], showgrid=True, gridcolor='#e0e0e0'),
             xaxis=dict(categoryorder='array', categoryarray=time_order),
             plot_bgcolor='rgba(0,0,0,0)',
-            showlegend=False
+            showlegend=True,
+            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1)
         )
 
         st.plotly_chart(fig_q11, use_container_width=True, key='time_of_day_line')
 
     with col2:
-        # Q28: Hours per day
+        # Q28: Hours per day - FY25 vs FY26 side by side
         st.subheader('Hours per day')
-        if 'Q28' in df_tab2.columns:
-            q28_counts = df_tab2['Q28'].value_counts().reset_index()
-            q28_counts.columns = ['Hours', 'Count']
+        col2a, col2b = st.columns(2)
 
-            fig_q28 = px.pie(
-                q28_counts,
-                names='Hours',
-                values='Count',
-                hole=0.4,
-                color_discrete_sequence=px.colors.qualitative.Pastel
-            )
-            fig_q28.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
-            st.plotly_chart(fig_q28, use_container_width=True, key='hours_per_day_pie')
+        with col2a:
+            st.markdown('**FY25**')
+            if 'Q28' in fy25_tab2_filtered.columns:
+                q28_counts_fy25 = fy25_tab2_filtered['Q28'].value_counts().reset_index()
+                q28_counts_fy25.columns = ['Hours', 'Count']
+
+                fig_q28_fy25 = px.pie(
+                    q28_counts_fy25,
+                    names='Hours',
+                    values='Count',
+                    hole=0.4,
+                    color_discrete_sequence=px.colors.qualitative.Pastel
+                )
+                fig_q28_fy25.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
+                fig_q28_fy25.update_layout(height=350, showlegend=False, margin=dict(t=10, b=10, l=10, r=10))
+                st.plotly_chart(fig_q28_fy25, use_container_width=True, key='hours_per_day_pie_fy25')
+
+        with col2b:
+            st.markdown('**FY26**')
+            if 'Q28' in df_tab2.columns:
+                q28_counts_fy26 = df_tab2['Q28'].value_counts().reset_index()
+                q28_counts_fy26.columns = ['Hours', 'Count']
+
+                fig_q28_fy26 = px.pie(
+                    q28_counts_fy26,
+                    names='Hours',
+                    values='Count',
+                    hole=0.4,
+                    color_discrete_sequence=px.colors.qualitative.Pastel
+                )
+                fig_q28_fy26.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
+                fig_q28_fy26.update_layout(height=350, showlegend=False, margin=dict(t=10, b=10, l=10, r=10))
+                st.plotly_chart(fig_q28_fy26, use_container_width=True, key='hours_per_day_pie_fy26')
 
     # Second row: Social Media Channels and Platform Usage by Hour
     st.markdown("---")
     col3, col4 = st.columns(2)
 
     with col3:
-        # Q10: Which social media channels are they using day to day? (UpSet plot)
+        # Q10: Which social media channels are they using day to day? (UpSet plot with FY25 overlay)
         st.subheader('Which social media channels are they using day to day?')
         q10_labels = {
             'Q10_a': 'Facebook',
@@ -544,7 +753,7 @@ with tab2:
             'Q10_g': 'Others'
         }
 
-        # Prepare data for UpSet plot
+        # Prepare data for UpSet plot - FY26
         q10_cols = [col for col in q10_labels.keys() if col in df_tab2.columns]
 
         # Create a DataFrame for upset plot - need to convert to boolean
@@ -556,36 +765,55 @@ with tab2:
         rename_q10_map = {col: q10_labels[col] for col in q10_cols if col in q10_labels}
         upset_q10_data = upset_q10_data.rename(columns=rename_q10_map)
 
-        # Count combinations
+        # Count combinations for FY26
         from collections import Counter
-        q10_combinations = []
+        q10_combinations_fy26 = []
         for idx, row in upset_q10_data.iterrows():
-            combo = tuple(col for col in upset_q10_data.columns if row[col])
-            if combo:  # Only include if at least one channel is selected
-                q10_combinations.append(combo)
+            combo = tuple(sorted(col for col in upset_q10_data.columns if row[col]))
+            if combo:
+                q10_combinations_fy26.append(combo)
 
-        q10_combo_counts = Counter(q10_combinations)
+        q10_combo_counts_fy26 = Counter(q10_combinations_fy26)
 
-        # Get top 15 combinations
-        q10_top_combos = sorted(q10_combo_counts.items(), key=lambda x: x[1], reverse=True)[:15]
+        # Prepare FY25 data for the same combinations
+        q10_cols_fy25 = [col for col in q10_labels.keys() if col in fy25_tab2_filtered.columns]
+        upset_q10_data_fy25 = fy25_tab2_filtered[q10_cols_fy25].copy()
+        upset_q10_data_fy25 = upset_q10_data_fy25.fillna(0)
+        upset_q10_data_fy25 = (upset_q10_data_fy25 == 1.0)
+        upset_q10_data_fy25 = upset_q10_data_fy25.rename(columns=rename_q10_map)
+
+        q10_combinations_fy25 = []
+        for idx, row in upset_q10_data_fy25.iterrows():
+            combo = tuple(sorted(col for col in upset_q10_data_fy25.columns if row[col]))
+            if combo:
+                q10_combinations_fy25.append(combo)
+
+        q10_combo_counts_fy25 = Counter(q10_combinations_fy25)
+
+        # Get top 15 combinations from FY26
+        q10_top_combos = sorted(q10_combo_counts_fy26.items(), key=lambda x: x[1], reverse=True)[:15]
 
         # Create upset-style visualization manually
-        import plotly.graph_objects as go
         from plotly.subplots import make_subplots
 
         # Prepare data
         q10_combo_labels = []
-        q10_combo_values = []
-        q10_combo_percentages = []
+        q10_combo_percentages_fy26 = []
+        q10_combo_percentages_fy25 = []
         q10_matrix_data = {col: [] for col in upset_q10_data.columns}
 
-        total_respondents = len(df_tab2)
+        total_respondents_fy26 = len(df_tab2)
+        total_respondents_fy25 = len(fy25_tab2_filtered)
 
         for combo, count in q10_top_combos:
             q10_combo_labels.append(' & '.join(combo) if len(combo) <= 2 else f"{len(combo)} channels")
-            q10_combo_values.append(count)
-            pct = (count / total_respondents * 100) if total_respondents > 0 else 0
-            q10_combo_percentages.append(pct)
+            pct_fy26 = (count / total_respondents_fy26 * 100) if total_respondents_fy26 > 0 else 0
+            q10_combo_percentages_fy26.append(pct_fy26)
+
+            # Get FY25 count for the same combination
+            count_fy25 = q10_combo_counts_fy25.get(combo, 0)
+            pct_fy25 = (count_fy25 / total_respondents_fy25 * 100) if total_respondents_fy25 > 0 else 0
+            q10_combo_percentages_fy25.append(pct_fy25)
 
             for col in upset_q10_data.columns:
                 q10_matrix_data[col].append(1 if col in combo else 0)
@@ -598,17 +826,31 @@ with tab2:
             specs=[[{"type": "bar"}], [{"type": "scatter"}]]
         )
 
-        # Top plot: bar chart of combination percentages
+        # Top plot: bar chart of combination percentages (FY26)
         fig_q10.add_trace(
             go.Bar(
-                x=list(range(len(q10_combo_percentages))),
-                y=q10_combo_percentages,
+                x=list(range(len(q10_combo_percentages_fy26))),
+                y=q10_combo_percentages_fy26,
                 marker_color='#4575b4',
-                showlegend=False,
+                name='FY26',
                 width=0.6,
-                text=[f'{p:.1f}%' for p in q10_combo_percentages],
+                text=[f'{p:.1f}%' for p in q10_combo_percentages_fy26],
                 textposition='outside',
-                hovertemplate='%{y:.1f}%<extra></extra>'
+                hovertemplate='FY26<br>%{y:.1f}%<extra></extra>'
+            ),
+            row=1, col=1
+        )
+
+        # Overlay FY25 line on top of bars
+        fig_q10.add_trace(
+            go.Scatter(
+                x=list(range(len(q10_combo_percentages_fy25))),
+                y=q10_combo_percentages_fy25,
+                mode='lines+markers',
+                name='FY25',
+                line=dict(color='#d73027', width=2, dash='dash'),
+                marker=dict(size=8, color='#d73027'),
+                hovertemplate='FY25<br>%{y:.1f}%<extra></extra>'
             ),
             row=1, col=1
         )
@@ -616,17 +858,15 @@ with tab2:
         # Bottom plot: matrix showing which channels are in each combination
         # Add connecting lines first
         for j in range(len(q10_matrix_data[list(upset_q10_data.columns)[0]])):
-            # Find which channels are active for this combination
             active_indices = [i for i, col in enumerate(upset_q10_data.columns) if q10_matrix_data[col][j] == 1]
 
             if len(active_indices) > 1:
-                # Draw connecting line
                 fig_q10.add_trace(
                     go.Scatter(
                         x=[j] * len(active_indices),
                         y=active_indices,
                         mode='lines',
-                        line=dict(color='#d73027', width=2),
+                        line=dict(color='#4575b4', width=2),
                         showlegend=False,
                         hoverinfo='skip'
                     ),
@@ -648,7 +888,7 @@ with tab2:
                     x=x_vals,
                     y=y_vals,
                     mode='markers',
-                    marker=dict(size=10, color='#d73027', line=dict(color='#ffffff', width=1)),
+                    marker=dict(size=10, color='#4575b4', line=dict(color='#ffffff', width=1)),
                     showlegend=False,
                     name=col,
                     hovertemplate=f'{col}<extra></extra>'
@@ -660,14 +900,14 @@ with tab2:
         fig_q10.update_xaxes(
             showticklabels=False,
             showgrid=False,
-            range=[-0.5, len(q10_combo_values) - 0.5],
+            range=[-0.5, len(q10_combo_percentages_fy26) - 0.5],
             row=1, col=1
         )
         fig_q10.update_xaxes(
             showticklabels=False,
             showgrid=False,
             zeroline=False,
-            range=[-0.5, len(q10_combo_values) - 0.5],
+            range=[-0.5, len(q10_combo_percentages_fy26) - 0.5],
             row=2, col=1
         )
         fig_q10.update_yaxes(
@@ -686,8 +926,9 @@ with tab2:
 
         fig_q10.update_layout(
             height=500,
-            showlegend=False,
-            margin=dict(l=10, r=10, t=10, b=10),
+            showlegend=True,
+            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+            margin=dict(l=10, r=10, t=30, b=10),
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)'
         )
@@ -695,36 +936,129 @@ with tab2:
         st.plotly_chart(fig_q10, use_container_width=True, key='social_media_upset')
 
     with col4:
-        # Platform Usage by Hour - stacked bar chart
+        # Platform Usage by Hour - paired stacked bar chart (FY25 vs FY26)
         st.subheader('Platform Usage by Hour')
 
-        try:
-            usage_stats_df = pd.read_csv('clean/platform_usage_statistics.csv')
+        # Calculate platform usage stats for both years
+        def calc_platform_time_stats(data, platform_cols):
+            stats = []
+            for col, platform in platform_cols.items():
+                if col in data.columns and 'Q28' in data.columns:
+                    users = data[data[col] == 1.0]
+                    time_dist = users['Q28'].value_counts()
+
+                    lt2h = time_dist.get('Less than 2 hours', 0)
+                    t2_4h = time_dist.get('2-4 hours', 0)
+                    gt4h = time_dist.get('more than 4 hours', 0)
+
+                    total = lt2h + t2_4h + gt4h
+                    if total > 0:
+                        pct_lt2h = lt2h / total * 100
+                        pct_2_4h = t2_4h / total * 100
+                        pct_gt4h = gt4h / total * 100
+                    else:
+                        pct_lt2h = pct_2_4h = pct_gt4h = 0
+
+                    stats.append({
+                        'Platform': platform,
+                        'Pct_LessThan2h': pct_lt2h,
+                        'Pct_2to4h': pct_2_4h,
+                        'Pct_MoreThan4h': pct_gt4h
+                    })
+            return pd.DataFrame(stats)
+
+        platform_cols = {
+            'Q10_a': 'Facebook',
+            'Q10_b': 'Youtube',
+            'Q10_c': 'TikTok',
+            'Q10_d': 'Viber',
+            'Q10_e': 'Instagram',
+            'Q10_f': 'Messenger',
+            'Q10_g': 'Others'
+        }
+
+        # Calculate for FY26 and FY25
+        fy26_stats = calc_platform_time_stats(df_tab2, platform_cols)
+        fy25_stats = calc_platform_time_stats(fy25_tab2_filtered, platform_cols)
+
+        if len(fy26_stats) > 0 and len(fy25_stats) > 0:
+            # Create x-axis labels with paired bars
+            platforms = fy26_stats['Platform'].tolist()
+            x_positions = []
+            x_labels = []
+            bar_width = 0.35
+
+            for i, platform in enumerate(platforms):
+                x_positions.append(i * 2)  # FY26 position
+                x_positions.append(i * 2 + 0.8)  # FY25 position
+                x_labels.extend([f'{platform}', ''])
 
             fig_platform_time = go.Figure()
 
+            # FY25 bars (left of each pair) - lighter colors
+            fy25_x = [i * 2 for i in range(len(platforms))]
             fig_platform_time.add_trace(go.Bar(
-                name='<2 hours',
-                x=usage_stats_df['Platform'],
-                y=usage_stats_df['Pct_LessThan2h'],
+                name='<2h (FY25)',
+                x=fy25_x,
+                y=fy25_stats['Pct_LessThan2h'],
+                marker_color='#a8e6cf',  # Lighter green
+                width=bar_width,
+                hovertemplate='FY25<br>%{customdata}<br><2 hours: %{y:.1f}%<extra></extra>',
+                customdata=platforms,
+                legendgroup='lt2h'
+            ))
+            fig_platform_time.add_trace(go.Bar(
+                name='2-4h (FY25)',
+                x=fy25_x,
+                y=fy25_stats['Pct_2to4h'],
+                marker_color='#fad390',  # Lighter orange
+                width=bar_width,
+                hovertemplate='FY25<br>%{customdata}<br>2-4 hours: %{y:.1f}%<extra></extra>',
+                customdata=platforms,
+                legendgroup='2_4h'
+            ))
+            fig_platform_time.add_trace(go.Bar(
+                name='>4h (FY25)',
+                x=fy25_x,
+                y=fy25_stats['Pct_MoreThan4h'],
+                marker_color='#f8b4b4',  # Lighter red
+                width=bar_width,
+                hovertemplate='FY25<br>%{customdata}<br>>4 hours: %{y:.1f}%<extra></extra>',
+                customdata=platforms,
+                legendgroup='gt4h'
+            ))
+
+            # FY26 bars (right of each pair)
+            fy26_x = [i * 2 + 0.4 for i in range(len(platforms))]
+            fig_platform_time.add_trace(go.Bar(
+                name='<2h (FY26)',
+                x=fy26_x,
+                y=fy26_stats['Pct_LessThan2h'],
                 marker_color='#2ecc71',
-                hovertemplate='%{x}<br><2 hours: %{y:.1f}%<extra></extra>'
+                width=bar_width,
+                hovertemplate='FY26<br>%{customdata}<br><2 hours: %{y:.1f}%<extra></extra>',
+                customdata=platforms,
+                legendgroup='lt2h'
             ))
-
             fig_platform_time.add_trace(go.Bar(
-                name='2-4 hours',
-                x=usage_stats_df['Platform'],
-                y=usage_stats_df['Pct_2to4h'],
+                name='2-4h (FY26)',
+                x=fy26_x,
+                y=fy26_stats['Pct_2to4h'],
                 marker_color='#f39c12',
-                hovertemplate='%{x}<br>2-4 hours: %{y:.1f}%<extra></extra>'
+                width=bar_width,
+                hovertemplate='FY26<br>%{customdata}<br>2-4 hours: %{y:.1f}%<extra></extra>',
+                customdata=platforms,
+                legendgroup='2_4h'
             ))
-
             fig_platform_time.add_trace(go.Bar(
-                name='>4 hours',
-                x=usage_stats_df['Platform'],
-                y=usage_stats_df['Pct_MoreThan4h'],
+                name='>4h (FY26)',
+                x=fy26_x,
+                y=fy26_stats['Pct_MoreThan4h'],
                 marker_color='#e74c3c',
-                hovertemplate='%{x}<br>>4 hours: %{y:.1f}%<extra></extra>'
+                width=bar_width,
+                hovertemplate='FY26<br>%{customdata}<br>>4 hours: %{y:.1f}%<extra></extra>',
+                customdata=platforms,
+                legendgroup='gt4h'
             ))
 
             fig_platform_time.update_layout(
@@ -732,20 +1066,35 @@ with tab2:
                 xaxis_title='',
                 yaxis_title='% of Platform Users',
                 height=500,
+                xaxis=dict(
+                    tickmode='array',
+                    tickvals=[i * 2 + 0.2 for i in range(len(platforms))],
+                    ticktext=platforms,
+                    tickangle=-45
+                ),
                 legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5),
-                margin=dict(l=10, r=10, t=40, b=10)
+                margin=dict(l=10, r=10, t=60, b=80)
             )
-            st.plotly_chart(fig_platform_time, use_container_width=True, key='platform_time_distribution')
 
-        except FileNotFoundError:
-            st.warning('Platform usage data not found. Please run `python platform_time_estimation.py` first.')
+            # Add FY25/FY26 annotations below bars
+            for i, platform in enumerate(platforms):
+                fig_platform_time.add_annotation(
+                    x=i * 2, y=-8, text='25', showarrow=False, font=dict(size=8), yref='y'
+                )
+                fig_platform_time.add_annotation(
+                    x=i * 2 + 0.4, y=-8, text='26', showarrow=False, font=dict(size=8), yref='y'
+                )
+
+            st.plotly_chart(fig_platform_time, use_container_width=True, key='platform_time_distribution')
+        else:
+            st.warning('Platform usage data not available.')
 
     # Third row: Phone sharing and Poor connection
     st.markdown("---")
     col5, col6 = st.columns(2)
 
     with col5:
-        # Q07: Who do they share their phone with?
+        # Q07: Who do they share their phone with? - FY25 vs FY26 side by side
         st.subheader('Who do they share their phone with?')
         q07_labels = {
             'Q07_a': 'Children',
@@ -755,74 +1104,122 @@ with tab2:
             'Q07_e': 'Others',
             'Q07_f': "I don't share with anyone"
         }
-        q07_data = []
-        for col_name, label in q07_labels.items():
-            if col_name in df_tab2.columns:
-                count = (df_tab2[col_name] == 1.0).sum()
-                q07_data.append({'Category': label, 'Count': count})
 
-        q07_df = pd.DataFrame(q07_data)
+        col5a, col5b = st.columns(2)
 
-        fig_q07 = px.pie(
-            q07_df,
-            names='Category',
-            values='Count',
-            hole=0.4,
-            color_discrete_sequence=px.colors.qualitative.Pastel
-        )
-        fig_q07.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
-        st.plotly_chart(fig_q07, use_container_width=True, key='phone_sharing_pie')
+        with col5a:
+            st.markdown('**FY25**')
+            q07_data_fy25 = []
+            for col_name, label in q07_labels.items():
+                if col_name in fy25_tab2_filtered.columns:
+                    count = (fy25_tab2_filtered[col_name] == 1.0).sum()
+                    q07_data_fy25.append({'Category': label, 'Count': count})
 
-    with col6:
-        # Q27: Level of poor connection
-        st.subheader('Level of poor connection')
+            q07_df_fy25 = pd.DataFrame(q07_data_fy25)
 
-        if 'Q27' in df_tab2.columns:
-            q27_counts = df_tab2['Q27'].value_counts().reset_index()
-            q27_counts.columns = ['Connection Level', 'Count']
-
-            # Capitalize first letter and add line breaks for better display
-            q27_counts['Connection Level'] = q27_counts['Connection Level'].str.capitalize()
-
-            # Split long labels intelligently at word boundaries
-            def split_label(text, max_len=15):
-                if len(text) <= max_len:
-                    return text
-
-                words = text.split(' ')
-                lines = []
-                current_line = []
-                current_length = 0
-
-                for word in words:
-                    if current_length + len(word) + (1 if current_line else 0) > max_len:
-                        if current_line:
-                            lines.append(' '.join(current_line))
-                            current_line = [word]
-                            current_length = len(word)
-                        else:
-                            lines.append(word)
-                            current_length = 0
-                    else:
-                        current_line.append(word)
-                        current_length += len(word) + (1 if len(current_line) > 1 else 0)
-
-                if current_line:
-                    lines.append(' '.join(current_line))
-
-                return '<br>'.join(lines)
-
-            q27_counts['Connection Level'] = q27_counts['Connection Level'].apply(split_label)
-
-            fig_q27 = px.pie(
-                q27_counts,
-                names='Connection Level',
+            fig_q07_fy25 = px.pie(
+                q07_df_fy25,
+                names='Category',
                 values='Count',
                 hole=0.4,
                 color_discrete_sequence=px.colors.qualitative.Pastel
             )
-            fig_q27.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
-            st.plotly_chart(fig_q27, use_container_width=True, key='connection_level_pie')
+            fig_q07_fy25.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
+            fig_q07_fy25.update_layout(height=350, showlegend=False, margin=dict(t=10, b=10, l=10, r=10))
+            st.plotly_chart(fig_q07_fy25, use_container_width=True, key='phone_sharing_pie_fy25')
+
+        with col5b:
+            st.markdown('**FY26**')
+            q07_data_fy26 = []
+            for col_name, label in q07_labels.items():
+                if col_name in df_tab2.columns:
+                    count = (df_tab2[col_name] == 1.0).sum()
+                    q07_data_fy26.append({'Category': label, 'Count': count})
+
+            q07_df_fy26 = pd.DataFrame(q07_data_fy26)
+
+            fig_q07_fy26 = px.pie(
+                q07_df_fy26,
+                names='Category',
+                values='Count',
+                hole=0.4,
+                color_discrete_sequence=px.colors.qualitative.Pastel
+            )
+            fig_q07_fy26.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
+            fig_q07_fy26.update_layout(height=350, showlegend=False, margin=dict(t=10, b=10, l=10, r=10))
+            st.plotly_chart(fig_q07_fy26, use_container_width=True, key='phone_sharing_pie_fy26')
+
+    with col6:
+        # Q27: Level of poor connection - FY25 vs FY26 side by side
+        st.subheader('Level of poor connection')
+
+        # Split long labels intelligently at word boundaries
+        def split_label(text, max_len=15):
+            if len(text) <= max_len:
+                return text
+
+            words = text.split(' ')
+            lines = []
+            current_line = []
+            current_length = 0
+
+            for word in words:
+                if current_length + len(word) + (1 if current_line else 0) > max_len:
+                    if current_line:
+                        lines.append(' '.join(current_line))
+                        current_line = [word]
+                        current_length = len(word)
+                    else:
+                        lines.append(word)
+                        current_length = 0
+                else:
+                    current_line.append(word)
+                    current_length += len(word) + (1 if len(current_line) > 1 else 0)
+
+            if current_line:
+                lines.append(' '.join(current_line))
+
+            return '<br>'.join(lines)
+
+        col6a, col6b = st.columns(2)
+
+        with col6a:
+            st.markdown('**FY25**')
+            if 'Q27' in fy25_tab2_filtered.columns:
+                q27_counts_fy25 = fy25_tab2_filtered['Q27'].value_counts().reset_index()
+                q27_counts_fy25.columns = ['Connection Level', 'Count']
+                q27_counts_fy25['Connection Level'] = q27_counts_fy25['Connection Level'].str.capitalize()
+                q27_counts_fy25['Connection Level'] = q27_counts_fy25['Connection Level'].apply(split_label)
+
+                fig_q27_fy25 = px.pie(
+                    q27_counts_fy25,
+                    names='Connection Level',
+                    values='Count',
+                    hole=0.4,
+                    color_discrete_sequence=px.colors.qualitative.Pastel
+                )
+                fig_q27_fy25.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
+                fig_q27_fy25.update_layout(height=350, showlegend=False, margin=dict(t=10, b=10, l=10, r=10))
+                st.plotly_chart(fig_q27_fy25, use_container_width=True, key='connection_level_pie_fy25')
+
+        with col6b:
+            st.markdown('**FY26**')
+            if 'Q27' in df_tab2.columns:
+                q27_counts_fy26 = df_tab2['Q27'].value_counts().reset_index()
+                q27_counts_fy26.columns = ['Connection Level', 'Count']
+                q27_counts_fy26['Connection Level'] = q27_counts_fy26['Connection Level'].str.capitalize()
+                q27_counts_fy26['Connection Level'] = q27_counts_fy26['Connection Level'].apply(split_label)
+
+                fig_q27_fy26 = px.pie(
+                    q27_counts_fy26,
+                    names='Connection Level',
+                    values='Count',
+                    hole=0.4,
+                    color_discrete_sequence=px.colors.qualitative.Pastel
+                )
+                fig_q27_fy26.update_traces(texttemplate='%{label}<br>%{percent:.1%}', textposition='auto')
+                fig_q27_fy26.update_layout(height=350, showlegend=False, margin=dict(t=10, b=10, l=10, r=10))
+                st.plotly_chart(fig_q27_fy26, use_container_width=True, key='connection_level_pie_fy26')
 
 
 with tab3:
@@ -834,12 +1231,15 @@ with tab3:
     # Filter data based on selections for Tab3
     df_tab3 = apply_filters(df, tab3_filters)
 
-    # Display sample size at the top
-    st.markdown(f"**Sample Size: n = {len(df_tab3)}**")
+    # Filter FY25 data for Tab3
+    df_fy25_tab3 = apply_filters(df_fy25, tab3_filters)
+
+    # Display sample size as subtle caption
+    st.caption(f"n = {len(df_tab3):,} (FY26) · {len(df_fy25_tab3):,} (FY25)")
     st.markdown("---")
 
     # Create sub-tabs for each platform
-    platform_tabs = st.tabs(['Facebook', 'TikTok', 'Viber', 'YouTube'])
+    platform_tabs = st.tabs(['Facebook', 'TikTok', 'Viber', 'YouTube', 'Other'])
 
     # Facebook Tab
     with platform_tabs[0]:
@@ -852,6 +1252,7 @@ with tab3:
 
         create_platform_analysis(
             df=df_tab3,
+            df_fy25=df_fy25_tab3,
             platform_name='Facebook',
             platform_key='fb',
             platform_col='Q10_a',
@@ -865,6 +1266,7 @@ with tab3:
     with platform_tabs[1]:
         create_platform_analysis(
             df=df_tab3,
+            df_fy25=df_fy25_tab3,
             platform_name='TikTok',
             platform_key='tt',
             platform_col='Q10_c',
@@ -877,6 +1279,7 @@ with tab3:
     with platform_tabs[2]:
         create_platform_analysis(
             df=df_tab3,
+            df_fy25=df_fy25_tab3,
             platform_name='Viber',
             platform_key='vb',
             platform_col='Q10_d',
@@ -889,12 +1292,26 @@ with tab3:
     with platform_tabs[3]:
         create_platform_analysis(
             df=df_tab3,
+            df_fy25=df_fy25_tab3,
             platform_name='YouTube',
             platform_key='yt',
             platform_col='Q10_b',
             usecase_col='Q15',
             confidence_col='Q17',
             challenge_col='Q16'
+        )
+
+    # Other Social Media Tab
+    with platform_tabs[4]:
+        create_platform_analysis(
+            df=df_tab3,
+            df_fy25=df_fy25_tab3,
+            platform_name='Other Social Media',
+            platform_key='other',
+            platform_col='Q10_g',
+            usecase_col='Q24',
+            confidence_col='Q26',
+            challenge_col='Q25'
         )
 
 with tab4:
