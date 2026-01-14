@@ -2475,24 +2475,67 @@ with tab4:
         nps_results_df = pd.DataFrame(nps_results)
 
         if not nps_results_df.empty:
-            # Create a stacked bar chart
             st.markdown('#### NPS Distribution by Product')
-            nps_chart_data = nps_results_df.set_index('Product')[['Detractor', 'Passive', 'Promoter']]
 
-            fig_nps = px.bar(
-                nps_chart_data,
-                x=nps_chart_data.index,
-                y=['Detractor', 'Passive', 'Promoter'],
-                barmode='stack',
-                color_discrete_map={
-                    'Detractor': '#e74c3c',
-                    'Passive': '#f39c12',
-                    'Promoter': '#27ae60'
-                },
-                labels={'value': 'Count', 'variable': 'NPS Category'}
-            )
-            fig_nps.update_layout(xaxis_title='', yaxis_title='Count', height=500)
-            st.plotly_chart(fig_nps, use_container_width=True, key='nps_by_product_chart')
+            # Create two columns for chart and table
+            nps_col1, nps_col2 = st.columns([1, 1])
+
+            with nps_col1:
+                # Create a stacked bar chart
+                nps_chart_data = nps_results_df.set_index('Product')[['Detractor', 'Passive', 'Promoter']]
+
+                fig_nps = px.bar(
+                    nps_chart_data,
+                    x=nps_chart_data.index,
+                    y=['Detractor', 'Passive', 'Promoter'],
+                    barmode='stack',
+                    color_discrete_map={
+                        'Detractor': '#e74c3c',
+                        'Passive': '#f39c12',
+                        'Promoter': '#27ae60'
+                    },
+                    labels={'value': 'Count', 'variable': 'NPS Category'}
+                )
+                fig_nps.update_layout(xaxis_title='', yaxis_title='Count', height=500)
+                st.plotly_chart(fig_nps, use_container_width=True, key='nps_by_product_chart')
+
+            with nps_col2:
+                # Create detailed NPS table with score counts and average
+                st.markdown('**NPS Score Details**')
+
+                # Calculate score counts and averages for each product
+                nps_table_data = []
+                for product_name, product_col in product_columns.items():
+                    if product_col in nps_data.columns:
+                        product_users = nps_data[nps_data[product_col] == 1.0]
+
+                        if len(product_users) > 0 and 'Q40' in product_users.columns:
+                            # Count each score from 0-10
+                            score_counts = {}
+                            for score in range(11):
+                                score_counts[str(score)] = (product_users['Q40'] == score).sum()
+
+                            # Calculate average
+                            avg_score = product_users['Q40'].mean()
+
+                            row_data = {'Product': product_name}
+                            row_data.update(score_counts)
+                            row_data['Average'] = avg_score
+                            nps_table_data.append(row_data)
+
+                nps_table_df = pd.DataFrame(nps_table_data)
+
+                if not nps_table_df.empty:
+                    # Format the average column to 2 decimal places
+                    nps_table_df['Average'] = nps_table_df['Average'].apply(lambda x: f'{x:.2f}')
+
+                    # Display the table
+                    st.dataframe(
+                        nps_table_df,
+                        use_container_width=True,
+                        hide_index=True,
+                        height=500
+                    )
     else:
         st.info('NPS data (Q40) not available in the dataset.')
 
