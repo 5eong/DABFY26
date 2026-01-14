@@ -1748,6 +1748,165 @@ with tab4:
 
     st.markdown('---')
 
+    # Paid vs Free Products Usage Comparison Section
+    st.subheader('Paid vs Free Products Usage Comparison')
+    st.caption('Note: Paid products include Yetagon Irrigation, EM/Zarmani, Trichoderma, Sun-kissed, and Fish Amino. Free products include Digital Products (Q34 techniques, Po Chat, Messenger, Digital farm practices) and Yetagon Tele-agronomy.')
+
+    # Define paid product columns (used)
+    paid_product_cols = ['Q33_a', 'Q33_b', 'Q33_c', 'Q33_h', 'Q33_i']  # Irrigation, EM/Zarmani, Trichoderma, Sun-kissed, Fish Amino
+    paid_product_names = {
+        'Q33_a': 'Yetagon Irrigation',
+        'Q33_b': 'Yetagon EM/Zarmani',
+        'Q33_c': 'Yetagon Trichoderma',
+        'Q33_h': 'Yetagon Sun-kissed',
+        'Q33_i': 'Yetagon Fish Amino'
+    }
+
+    # Define free product columns (used) - Digital Products + Tele-agronomy
+    # Digital products: Q34_a through Q34_k (techniques) + Q33_j (Po Chat) + Q33_k (Messenger) + Q33_e (Digital farm practices)
+    # Plus Yetagon Tele-agronomy: Q33_d
+    free_product_technique_cols = [f'Q34_{chr(97+i)}' for i in range(11)]  # Q34_a through Q34_k
+    free_product_other_cols = ['Q33_j', 'Q33_k', 'Q33_e', 'Q33_d']  # Po Chat, Messenger, Digital farm practices, Tele-agronomy
+    free_product_cols = free_product_technique_cols + free_product_other_cols
+
+    # Calculate average usage for paid products
+    paid_usage_data = prod_filtered.copy()
+    paid_usage_count = 0
+    paid_products_available = 0
+    for col in paid_product_cols:
+        if col in paid_usage_data.columns:
+            paid_usage_count += paid_usage_data[col].fillna(0).astype(int).sum()
+            paid_products_available += 1
+
+    # Calculate average usage for free products
+    free_usage_data = prod_filtered.copy()
+    free_usage_count = 0
+    free_products_available = 0
+    for col in free_product_cols:
+        if col in free_usage_data.columns:
+            free_usage_count += free_usage_data[col].fillna(0).astype(int).sum()
+            free_products_available += 1
+
+    total_respondents = len(prod_filtered)
+
+    # Calculate average number of products used per respondent
+    if total_respondents > 0:
+        avg_paid_usage = paid_usage_count / total_respondents
+        avg_free_usage = free_usage_count / total_respondents
+    else:
+        avg_paid_usage = 0
+        avg_free_usage = 0
+
+    # Create two columns for display
+    paid_free_col1, paid_free_col2 = st.columns(2)
+
+    with paid_free_col1:
+        st.markdown('#### Average Products Used per Farmer')
+
+        # Create bar chart comparing average usage
+        avg_usage_df = pd.DataFrame({
+            'Product Type': ['Paid Products', 'Free Products'],
+            'Average Used': [avg_paid_usage, avg_free_usage]
+        })
+
+        fig_avg_usage = go.Figure()
+        fig_avg_usage.add_trace(go.Bar(
+            x=avg_usage_df['Product Type'],
+            y=avg_usage_df['Average Used'],
+            marker_color=['#0f4c3a', '#8fc1e3'],
+            text=[f'{val:.2f}' for val in avg_usage_df['Average Used']],
+            textposition='outside',
+            hovertemplate='%{x}<br>Average: %{y:.2f} products<extra></extra>'
+        ))
+
+        fig_avg_usage.update_layout(
+            xaxis_title='',
+            yaxis_title='Average Number of Products Used',
+            height=400,
+            showlegend=False
+        )
+        st.plotly_chart(fig_avg_usage, use_container_width=True, key='avg_paid_free_usage_chart')
+
+    with paid_free_col2:
+        st.markdown('#### Usage Breakdown by Product')
+
+        # Calculate individual product usage percentages
+        product_usage_list = []
+
+        # Paid products
+        for col in paid_product_cols:
+            if col in prod_filtered.columns:
+                usage_pct = (prod_filtered[col].fillna(0).astype(int).sum() / total_respondents * 100) if total_respondents > 0 else 0
+                product_usage_list.append({
+                    'Product': paid_product_names.get(col, col),
+                    'Usage (%)': usage_pct,
+                    'Type': 'Paid'
+                })
+
+        # Free products - show aggregated for digital techniques and individual for others
+        # Digital techniques aggregated
+        digital_tech_usage = 0
+        for col in free_product_technique_cols:
+            if col in prod_filtered.columns:
+                digital_tech_usage += prod_filtered[col].fillna(0).astype(int).sum()
+        # Count users who used any digital technique
+        digital_tech_users = prod_filtered.copy()
+        digital_tech_users['Any_Digital_Tech'] = False
+        for col in free_product_technique_cols:
+            if col in digital_tech_users.columns:
+                digital_tech_users['Any_Digital_Tech'] = digital_tech_users['Any_Digital_Tech'] | (digital_tech_users[col] == 1.0)
+        digital_tech_pct = (digital_tech_users['Any_Digital_Tech'].sum() / total_respondents * 100) if total_respondents > 0 else 0
+        product_usage_list.append({
+            'Product': 'Digital Techniques (Any)',
+            'Usage (%)': digital_tech_pct,
+            'Type': 'Free'
+        })
+
+        # Individual free products
+        free_product_names = {
+            'Q33_j': 'Po Chat',
+            'Q33_k': 'Messenger',
+            'Q33_e': 'Digital Farm Practices',
+            'Q33_d': 'Yetagon Tele-agronomy'
+        }
+        for col in free_product_other_cols:
+            if col in prod_filtered.columns:
+                usage_pct = (prod_filtered[col].fillna(0).astype(int).sum() / total_respondents * 100) if total_respondents > 0 else 0
+                product_usage_list.append({
+                    'Product': free_product_names.get(col, col),
+                    'Usage (%)': usage_pct,
+                    'Type': 'Free'
+                })
+
+        if product_usage_list:
+            product_usage_df = pd.DataFrame(product_usage_list)
+            product_usage_df = product_usage_df.sort_values(['Type', 'Usage (%)'], ascending=[True, False])
+
+            fig_product_breakdown = px.bar(
+                product_usage_df,
+                x='Product',
+                y='Usage (%)',
+                color='Type',
+                color_discrete_map={'Paid': '#0f4c3a', 'Free': '#8fc1e3'},
+                barmode='group'
+            )
+            fig_product_breakdown.update_layout(
+                xaxis_title='',
+                yaxis_title='Usage (%)',
+                height=400,
+                xaxis={'tickangle': -45},
+                legend=dict(
+                    orientation='h',
+                    yanchor='bottom',
+                    y=1.02,
+                    xanchor='right',
+                    x=1
+                )
+            )
+            st.plotly_chart(fig_product_breakdown, use_container_width=True, key='product_usage_breakdown_chart')
+
+    st.markdown('---')
+
     # NPS Analysis Section
     st.subheader('NPS Analysis')
 
@@ -2052,7 +2211,7 @@ with tab5:
         # Different color schemes per product (dark for Both, light for Digital)
         product_colors = {
             'Mighty': {'both': '#0f4c3a', 'digital': '#5a8f7b'},      # Green shades
-            'Pheonix': {'both': '#1565c0', 'digital': '#64b5f6'},     # Blue shades
+            'Phoenix': {'both': '#1565c0', 'digital': '#64b5f6'},     # Blue shades
             'Sun-kissed': {'both': '#e65100', 'digital': '#ffb74d'}   # Orange shades
         }
 
@@ -2138,16 +2297,8 @@ with tab5:
     metrics_df, df_both, df_digital = calculate_location_metrics(df_tab5, product_config)
 
     if not metrics_df.empty:
-        # Display sample sizes
-        st.markdown(f"**{selected_product}**")
-        st.markdown(f"- Both (Direct + Digital) townships: n = {len(df_both)}")
-        st.markdown(f"- Digital Only townships: n = {len(df_digital)}")
-
-        st.markdown('---')
-
         # Expanded Analysis: Other Yetagon Products Awareness
         st.subheader('Other Yetagon Products Awareness by Location Type')
-        st.caption('Percentages are calculated within each respective population (Both or Digital Only)')
 
         other_products = {
             'Q31_a': 'Yetagon Irrigation',
@@ -2211,7 +2362,6 @@ with tab5:
 
         # Brand Awareness by Location Type
         st.subheader('Brand Awareness by Location Type')
-        st.caption('Percentages are calculated within each respective population (Both or Digital Only)')
 
         brand_labels = {
             'Q36_a': 'Awba',
@@ -2283,7 +2433,6 @@ with tab5:
 
         # Summary Table
         st.subheader('Summary: Difference in Awareness (Both - Digital Only)')
-        st.caption('Positive values indicate higher percentage in Both (Direct + Digital) townships. Percentages calculated within each respective population.')
 
         # Combine products and brands into summary
         summary_data = []
