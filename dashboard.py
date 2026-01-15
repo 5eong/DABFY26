@@ -2923,30 +2923,40 @@ with tab5:
         brand_data = []
 
         for col, label in brand_labels.items():
+            direct_pct = (df_direct[col] == 1.0).sum() / len(df_direct) * 100 if col in df_direct.columns and len(df_direct) > 0 else 0
             both_pct = (df_both[col] == 1.0).sum() / len(df_both) * 100 if col in df_both.columns and len(df_both) > 0 else 0
             digital_pct = (df_digital[col] == 1.0).sum() / len(df_digital) * 100 if col in df_digital.columns and len(df_digital) > 0 else 0
 
             brand_data.append({
                 'Brand': label,
-                'Both (Direct + Digital)': both_pct,
-                'Digital Only': digital_pct,
-                'Difference': both_pct - digital_pct
+                'Direct': direct_pct,
+                'Digital - Group 1': both_pct,
+                'Digital - Group 2': digital_pct
             })
 
         brand_df = pd.DataFrame(brand_data)
 
         # Sort by average awareness
-        brand_df['Average'] = (brand_df['Both (Direct + Digital)'] + brand_df['Digital Only']) / 2
+        brand_df['Average'] = (brand_df['Direct'] + brand_df['Digital - Group 1'] + brand_df['Digital - Group 2']) / 3
         brand_df = brand_df.sort_values('Average', ascending=False)
 
         # Create grouped bar chart for brands (percentages)
         fig_brands = go.Figure()
 
         fig_brands.add_trace(go.Bar(
+            name='Direct',
+            x=brand_df['Brand'],
+            y=brand_df['Direct'],
+            text=[f"{v:.1f}%" for v in brand_df['Direct']],
+            textposition='outside',
+            marker_color='#0a3d2e'
+        ))
+
+        fig_brands.add_trace(go.Bar(
             name='Digital - Group 1',
             x=brand_df['Brand'],
-            y=brand_df['Both (Direct + Digital)'],
-            text=[f"{v:.1f}%" for v in brand_df['Both (Direct + Digital)']],
+            y=brand_df['Digital - Group 1'],
+            text=[f"{v:.1f}%" for v in brand_df['Digital - Group 1']],
             textposition='outside',
             marker_color='#0f4c3a'
         ))
@@ -2954,8 +2964,8 @@ with tab5:
         fig_brands.add_trace(go.Bar(
             name='Digital - Group 2',
             x=brand_df['Brand'],
-            y=brand_df['Digital Only'],
-            text=[f"{v:.1f}%" for v in brand_df['Digital Only']],
+            y=brand_df['Digital - Group 2'],
+            text=[f"{v:.1f}%" for v in brand_df['Digital - Group 2']],
             textposition='outside',
             marker_color='#8fc1e3'
         ))
@@ -2973,7 +2983,7 @@ with tab5:
         st.markdown('---')
 
         # Summary Table
-        st.subheader('Summary: Difference in Awareness (Both - Digital Only)')
+        st.subheader('Summary: Awareness by Group')
 
         # Combine products and brands into summary
         summary_data = []
@@ -2982,28 +2992,28 @@ with tab5:
             summary_data.append({
                 'Category': 'Yetagon Product',
                 'Item': row['Product'],
-                'Both (%)': row['Both (Direct + Digital)'],
-                'Digital Only (%)': row['Digital Only'],
-                'Difference (pp)': row['Difference']
+                'Direct (%)': row['Direct'],
+                'Digital - Group 1 (%)': row['Digital - Group 1'],
+                'Digital - Group 2 (%)': row['Digital - Group 2']
             })
 
         for _, row in brand_df.iterrows():
             summary_data.append({
                 'Category': 'Brand',
                 'Item': row['Brand'],
-                'Both (%)': row['Both (Direct + Digital)'],
-                'Digital Only (%)': row['Digital Only'],
-                'Difference (pp)': row['Difference']
+                'Direct (%)': row['Direct'],
+                'Digital - Group 1 (%)': row['Digital - Group 1'],
+                'Digital - Group 2 (%)': row['Digital - Group 2']
             })
 
         summary_df = pd.DataFrame(summary_data)
-        summary_df = summary_df.sort_values('Difference (pp)', ascending=False)
+        summary_df = summary_df.sort_values('Direct (%)', ascending=False)
 
         # Format the dataframe for display
         summary_display = summary_df.copy()
-        summary_display['Both (%)'] = summary_display['Both (%)'].apply(lambda x: f"{x:.1f}%")
-        summary_display['Digital Only (%)'] = summary_display['Digital Only (%)'].apply(lambda x: f"{x:.1f}%")
-        summary_display['Difference (pp)'] = summary_display['Difference (pp)'].apply(lambda x: f"{x:+.1f}")
+        summary_display['Direct (%)'] = summary_display['Direct (%)'].apply(lambda x: f"{x:.1f}%")
+        summary_display['Digital - Group 1 (%)'] = summary_display['Digital - Group 1 (%)'].apply(lambda x: f"{x:.1f}%")
+        summary_display['Digital - Group 2 (%)'] = summary_display['Digital - Group 2 (%)'].apply(lambda x: f"{x:.1f}%")
 
         st.dataframe(summary_display, hide_index=True, use_container_width=True)
 
