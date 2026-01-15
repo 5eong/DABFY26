@@ -2631,7 +2631,7 @@ with tab5:
 
     # Helper function to classify township and calculate metrics
     def calculate_location_metrics(df_filtered, product_config):
-        """Calculate awareness metrics for Direct Only, Both, and Digital Only townships"""
+        """Calculate awareness metrics for Direct (all townships), Digital - Group 1, and Digital - Group 2"""
         both_townships = product_config['townships']['both']
         digital_townships = product_config['townships']['digital']
 
@@ -2641,13 +2641,12 @@ with tab5:
         # Filter by township groups
         df_both = df_filtered[df_filtered['Township'].isin(both_townships)]
         df_digital = df_filtered[df_filtered['Township'].isin(digital_townships)]
-        # Direct Only = townships not in Both or Digital Only lists
-        all_intervention_townships = set(both_townships + digital_townships)
-        df_direct = df_filtered[~df_filtered['Township'].isin(all_intervention_townships)]
+        # Direct = ALL townships (no filtering by location)
+        df_direct = df_filtered.copy()
 
         results = []
 
-        # Calculate metrics for "Direct Only" group
+        # Calculate metrics for "Direct" group (all townships)
         if len(df_direct) > 0:
             heard_direct_count = (df_direct[heard_col] == 1.0).sum() if heard_col in df_direct.columns else 0
             used_direct_count = (df_direct[used_col] == 1.0).sum() if used_col in df_direct.columns else 0
