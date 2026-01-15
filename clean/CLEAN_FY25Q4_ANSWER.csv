@@ -28,8 +28,8 @@ Q08,Q08_Do you have an access to the internet?,
 Q09_a,"Q09_When he/she face need advice for their farms, how do they seek the advice and suggestions?",Asking the friend farmers
 Q09_b,"Q09_When he/she face need advice for their farms, how do they seek the advice and suggestions?",Searching on social media channels
 Q09_c,"Q09_When he/she face need advice for their farms, how do they seek the advice and suggestions?",Input shops
-Q09_g,"Q09_When he/she face need advice for their farms, how do they seek the advice and suggestions?",Calling to someone who is from the organisation
-Q09_h,"Q09_When he/she face need advice for their farms, how do they seek the advice and suggestions?","Calling to the organisation like Yetagon, Awba or Government offices"
+Q09_d,"Q09_When he/she face need advice for their farms, how do they seek the advice and suggestions?","Calling to the organisation like Yetagon, Awba or Government offices"
+Q09_e,"Q09_When he/she face need advice for their farms, how do they seek the advice and suggestions?",Calling to someone who is from the organisation
 Q09_other_text,"Q09_If other, please specify",
 Q10_a,Q10_Which social media channels are they using day to day ?,Facebook
 Q10_b,Q10_Which social media channels are they using day to day ?,Youtube
