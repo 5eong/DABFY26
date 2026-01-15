@@ -9,6 +9,7 @@ from platform_helper import create_platform_analysis
 st.set_page_config(page_title='Survey Demographics Dashboard', layout='wide')
 
 # Load data
+# Data version: 2026-01-15-v2 (Q09 column mappings fixed)
 @st.cache_data
 def load_data():
     # Load cleaned FY26 data from /clean folder
