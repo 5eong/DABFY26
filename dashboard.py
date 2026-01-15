@@ -129,12 +129,21 @@ with tab1:
     else:
         col4.metric('Heard Po Chat', 'N/A')
 
-    # Average NPS Score
+    # NPS Score (% Promoters - % Detractors)
     if 'Q40' in df_demo.columns:
-        nps_avg = df_demo['Q40'].mean()
-        col5.metric('Avg NPS Score', f"{nps_avg:.2f}")
+        valid_nps = df_demo['Q40'].dropna()
+        if len(valid_nps) > 0:
+            detractors = ((valid_nps >= 0) & (valid_nps <= 6)).sum()
+            promoters = ((valid_nps >= 9) & (valid_nps <= 10)).sum()
+            total = len(valid_nps)
+            pct_promoters = (promoters / total * 100) if total > 0 else 0
+            pct_detractors = (detractors / total * 100) if total > 0 else 0
+            nps_score = pct_promoters - pct_detractors
+            col5.metric('NPS Score', f"{nps_score:.1f}")
+        else:
+            col5.metric('NPS Score', 'N/A')
     else:
-        col5.metric('Avg NPS Score', 'N/A')
+        col5.metric('NPS Score', 'N/A')
 
     # Apply same filters to FY25 data for Demographics tab
     fy25_demo_filtered = apply_filters(df_fy25, demo_filters)
@@ -2383,51 +2392,37 @@ with tab4:
                     'Messenger': 'Q33_k'
                 }
 
-                # Create summary table with NPS scores by product
-                nps_summary = []
+                # Create reasons breakdown by product with NPS scores
+                reasons_by_product = []
                 for product_name, product_col in product_columns.items():
                     if product_col in prod_filtered.columns:
                         product_users = prod_filtered[prod_filtered[product_col] == 1.0]
 
-                        if len(product_users) > 0 and 'Q40' in product_users.columns:
-                            product_users_with_scores = product_users[product_users['Q40'].notna()]
+                        if len(product_users) > 0 and 'Q41' in product_users.columns and 'Q40' in product_users.columns:
+                            # Iterate through each user's response
+                            for idx, row in product_users.iterrows():
+                                if pd.notna(row['Q41']) and pd.notna(row['Q40']):
+                                    reasons_by_product.append({
+                                        'Product': product_name,
+                                        'NPS Score': int(row['Q40']),
+                                        'Reason': str(row['Q41'])[:50] + ('...' if len(str(row['Q41'])) > 50 else '')
+                                    })
 
-                            if len(product_users_with_scores) > 0:
-                                # Calculate NPS categories
-                                detractors = ((product_users_with_scores['Q40'] >= 0) & (product_users_with_scores['Q40'] <= 6)).sum()
-                                passives = ((product_users_with_scores['Q40'] >= 7) & (product_users_with_scores['Q40'] <= 8)).sum()
-                                promoters = ((product_users_with_scores['Q40'] >= 9) & (product_users_with_scores['Q40'] <= 10)).sum()
-                                total = len(product_users_with_scores)
+                if reasons_by_product:
+                    reasons_product_df = pd.DataFrame(reasons_by_product)
 
-                                # Calculate NPS Score: % Promoters - % Detractors
-                                pct_promoters = (promoters / total * 100) if total > 0 else 0
-                                pct_detractors = (detractors / total * 100) if total > 0 else 0
-                                nps_score = pct_promoters - pct_detractors
-
-                                nps_summary.append({
-                                    'Product': product_name,
-                                    'Detractors': detractors,
-                                    'Passives': passives,
-                                    'Promoters': promoters,
-                                    'Total': total,
-                                    'NPS Score': nps_score
-                                })
-
-                if nps_summary:
-                    nps_summary_df = pd.DataFrame(nps_summary)
-
-                    # Format NPS Score column
-                    nps_summary_df['NPS Score'] = nps_summary_df['NPS Score'].apply(lambda x: f'{x:.1f}')
+                    # Sort by product and NPS score
+                    reasons_product_df = reasons_product_df.sort_values(['Product', 'NPS Score'], ascending=[True, False])
 
                     # Display as scrollable dataframe
                     st.dataframe(
-                        nps_summary_df,
+                        reasons_product_df,
                         hide_index=True,
                         use_container_width=True,
                         height=400
                     )
                 else:
-                    st.info('No NPS data available')
+                    st.info('No reason data available')
     else:
         st.info('NPS data not available in the dataset')
 
