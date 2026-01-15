@@ -2383,37 +2383,51 @@ with tab4:
                     'Messenger': 'Q33_k'
                 }
 
-                # Create reasons breakdown by product with NPS scores
-                reasons_by_product = []
+                # Create summary table with NPS scores by product
+                nps_summary = []
                 for product_name, product_col in product_columns.items():
                     if product_col in prod_filtered.columns:
                         product_users = prod_filtered[prod_filtered[product_col] == 1.0]
 
-                        if len(product_users) > 0 and 'Q41' in product_users.columns and 'Q40' in product_users.columns:
-                            # Iterate through each user's response
-                            for idx, row in product_users.iterrows():
-                                if pd.notna(row['Q41']) and pd.notna(row['Q40']):
-                                    reasons_by_product.append({
-                                        'Product': product_name,
-                                        'NPS Score': int(row['Q40']),
-                                        'Reason': str(row['Q41'])[:50] + ('...' if len(str(row['Q41'])) > 50 else '')
-                                    })
+                        if len(product_users) > 0 and 'Q40' in product_users.columns:
+                            product_users_with_scores = product_users[product_users['Q40'].notna()]
 
-                if reasons_by_product:
-                    reasons_product_df = pd.DataFrame(reasons_by_product)
+                            if len(product_users_with_scores) > 0:
+                                # Calculate NPS categories
+                                detractors = ((product_users_with_scores['Q40'] >= 0) & (product_users_with_scores['Q40'] <= 6)).sum()
+                                passives = ((product_users_with_scores['Q40'] >= 7) & (product_users_with_scores['Q40'] <= 8)).sum()
+                                promoters = ((product_users_with_scores['Q40'] >= 9) & (product_users_with_scores['Q40'] <= 10)).sum()
+                                total = len(product_users_with_scores)
 
-                    # Sort by product and NPS score
-                    reasons_product_df = reasons_product_df.sort_values(['Product', 'NPS Score'], ascending=[True, False])
+                                # Calculate NPS Score: % Promoters - % Detractors
+                                pct_promoters = (promoters / total * 100) if total > 0 else 0
+                                pct_detractors = (detractors / total * 100) if total > 0 else 0
+                                nps_score = pct_promoters - pct_detractors
+
+                                nps_summary.append({
+                                    'Product': product_name,
+                                    'Detractors': detractors,
+                                    'Passives': passives,
+                                    'Promoters': promoters,
+                                    'Total': total,
+                                    'NPS Score': nps_score
+                                })
+
+                if nps_summary:
+                    nps_summary_df = pd.DataFrame(nps_summary)
+
+                    # Format NPS Score column
+                    nps_summary_df['NPS Score'] = nps_summary_df['NPS Score'].apply(lambda x: f'{x:.1f}')
 
                     # Display as scrollable dataframe
                     st.dataframe(
-                        reasons_product_df,
+                        nps_summary_df,
                         hide_index=True,
                         use_container_width=True,
                         height=400
                     )
                 else:
-                    st.info('No reason data available')
+                    st.info('No NPS data available')
     else:
         st.info('NPS data not available in the dataset')
 
@@ -2522,9 +2536,18 @@ with tab4:
                                 # Calculate average (only on non-null values)
                                 avg_score = product_users_with_scores['Q40'].mean()
 
+                                # Calculate NPS Score: % Promoters - % Detractors
+                                total = len(product_users_with_scores)
+                                detractors = ((product_users_with_scores['Q40'] >= 0) & (product_users_with_scores['Q40'] <= 6)).sum()
+                                promoters = ((product_users_with_scores['Q40'] >= 9) & (product_users_with_scores['Q40'] <= 10)).sum()
+                                pct_promoters = (promoters / total * 100) if total > 0 else 0
+                                pct_detractors = (detractors / total * 100) if total > 0 else 0
+                                nps_score = pct_promoters - pct_detractors
+
                                 row_data = {'Product': product_name}
                                 row_data.update(score_counts)
                                 row_data['Average'] = avg_score
+                                row_data['NPS Score'] = nps_score
                                 nps_table_data.append(row_data)
 
                 nps_table_df = pd.DataFrame(nps_table_data)
@@ -2539,12 +2562,14 @@ with tab4:
                             cols_to_keep.append(col)
 
                     cols_to_keep.append('Average')
+                    cols_to_keep.append('NPS Score')
 
                     # Filter to only needed columns
                     nps_table_df = nps_table_df[cols_to_keep]
 
-                    # Format the average column to 2 decimal places
+                    # Format the average and NPS score columns
                     nps_table_df['Average'] = nps_table_df['Average'].apply(lambda x: f'{x:.2f}')
+                    nps_table_df['NPS Score'] = nps_table_df['NPS Score'].apply(lambda x: f'{x:.1f}')
 
                     # Display the table
                     st.dataframe(
