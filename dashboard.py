@@ -2631,22 +2631,29 @@ with tab5:
 
     # Helper function to classify township and calculate metrics
     def calculate_location_metrics(df_filtered, product_config):
-        """Calculate awareness metrics for Direct (all townships), Digital - Group 1, and Digital - Group 2"""
+        """Calculate awareness metrics for Direct, Digital - Group 1, and Digital - Group 2"""
         both_townships = product_config['townships']['both']
         digital_townships = product_config['townships']['digital']
 
         heard_col = product_config['heard_col']
         used_col = product_config['used_col']
 
-        # Filter by township groups
-        df_both = df_filtered[df_filtered['Township'].isin(both_townships)]
-        df_digital = df_filtered[df_filtered['Township'].isin(digital_townships)]
-        # Direct = ALL townships (no filtering by location)
-        df_direct = df_filtered.copy()
+        # Filter by Direct or Digital column and township
+        # Direct = users where "Direct or Digital?" == "Direct"
+        df_direct = df_filtered[df_filtered['Direct or Digital?'] == 'Direct'] if 'Direct or Digital?' in df_filtered.columns else pd.DataFrame()
+
+        # Digital users only (for township filtering)
+        df_digital_users = df_filtered[df_filtered['Direct or Digital?'] == 'Digital'] if 'Direct or Digital?' in df_filtered.columns else df_filtered.copy()
+
+        # Digital - Group 1 = Digital users in "Both" townships
+        df_both = df_digital_users[df_digital_users['Township'].isin(both_townships)]
+
+        # Digital - Group 2 = Digital users in "Digital Only" townships
+        df_digital = df_digital_users[df_digital_users['Township'].isin(digital_townships)]
 
         results = []
 
-        # Calculate metrics for "Direct" group (all townships)
+        # Calculate metrics for "Direct" group
         if len(df_direct) > 0:
             heard_direct_count = (df_direct[heard_col] == 1.0).sum() if heard_col in df_direct.columns else 0
             used_direct_count = (df_direct[used_col] == 1.0).sum() if used_col in df_direct.columns else 0
