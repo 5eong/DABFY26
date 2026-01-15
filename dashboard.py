@@ -2631,7 +2631,7 @@ with tab5:
 
     # Helper function to classify township and calculate metrics
     def calculate_location_metrics(df_filtered, product_config):
-        """Calculate awareness metrics for Both vs Digital-only townships"""
+        """Calculate awareness metrics for Direct Only, Both, and Digital Only townships"""
         both_townships = product_config['townships']['both']
         digital_townships = product_config['townships']['digital']
 
@@ -2641,8 +2641,26 @@ with tab5:
         # Filter by township groups
         df_both = df_filtered[df_filtered['Township'].isin(both_townships)]
         df_digital = df_filtered[df_filtered['Township'].isin(digital_townships)]
+        # Direct Only = townships not in Both or Digital Only lists
+        all_intervention_townships = set(both_townships + digital_townships)
+        df_direct = df_filtered[~df_filtered['Township'].isin(all_intervention_townships)]
 
         results = []
+
+        # Calculate metrics for "Direct Only" group
+        if len(df_direct) > 0:
+            heard_direct_count = (df_direct[heard_col] == 1.0).sum() if heard_col in df_direct.columns else 0
+            used_direct_count = (df_direct[used_col] == 1.0).sum() if used_col in df_direct.columns else 0
+            heard_direct_pct = heard_direct_count / len(df_direct) * 100 if len(df_direct) > 0 else 0
+            used_direct_pct = used_direct_count / len(df_direct) * 100 if len(df_direct) > 0 else 0
+            results.append({
+                'Group': 'Direct',
+                'Sample Size': len(df_direct),
+                'Heard Of (%)': heard_direct_pct,
+                'Used (%)': used_direct_pct,
+                'Heard Of (Count)': heard_direct_count,
+                'Used (Count)': used_direct_count
+            })
 
         # Calculate metrics for "Both" group
         if len(df_both) > 0:
@@ -2651,7 +2669,7 @@ with tab5:
             heard_both_pct = heard_both_count / len(df_both) * 100 if len(df_both) > 0 else 0
             used_both_pct = used_both_count / len(df_both) * 100 if len(df_both) > 0 else 0
             results.append({
-                'Group': 'Both (Direct + Digital)',
+                'Group': 'Digital - Group 1',
                 'Sample Size': len(df_both),
                 'Heard Of (%)': heard_both_pct,
                 'Used (%)': used_both_pct,
@@ -2659,14 +2677,14 @@ with tab5:
                 'Used (Count)': used_both_count
             })
 
-        # Calculate metrics for "Digital" group
+        # Calculate metrics for "Digital Only" group
         if len(df_digital) > 0:
             heard_digital_count = (df_digital[heard_col] == 1.0).sum() if heard_col in df_digital.columns else 0
             used_digital_count = (df_digital[used_col] == 1.0).sum() if used_col in df_digital.columns else 0
             heard_digital_pct = heard_digital_count / len(df_digital) * 100 if len(df_digital) > 0 else 0
             used_digital_pct = used_digital_count / len(df_digital) * 100 if len(df_digital) > 0 else 0
             results.append({
-                'Group': 'Digital Only',
+                'Group': 'Digital - Group 2',
                 'Sample Size': len(df_digital),
                 'Heard Of (%)': heard_digital_pct,
                 'Used (%)': used_digital_pct,
@@ -2674,16 +2692,16 @@ with tab5:
                 'Used (Count)': used_digital_count
             })
 
-        return pd.DataFrame(results), df_both, df_digital
+        return pd.DataFrame(results), df_direct, df_both, df_digital
 
     # ========== OVERVIEW CHART: All 3 Products ==========
     st.subheader('Product Awareness & Usage: All Products Overview')
-    st.caption('Percentages are calculated within each respective population (Both or Digital Only)')
+    st.caption('Percentages are calculated within each respective population (Direct, Digital - Group 1, or Digital - Group 2)')
 
     # Calculate metrics for all products
     all_products_data = []
     for prod_name, prod_config in product_info.items():
-        metrics_df_temp, _, _ = calculate_location_metrics(df_tab5, prod_config)
+        metrics_df_temp, _, _, _ = calculate_location_metrics(df_tab5, prod_config)
 
         if not metrics_df_temp.empty:
             for _, row in metrics_df_temp.iterrows():
@@ -2705,11 +2723,11 @@ with tab5:
 
         products_list = all_products_df['Product'].unique()
 
-        # Different color schemes per product (dark for Both, light for Digital)
+        # Different color schemes per product (dark for Direct, medium for Both, light for Digital)
         product_colors = {
-            'Mighty': {'both': '#0f4c3a', 'digital': '#5a8f7b'},      # Green shades
-            'Phoenix': {'both': '#1565c0', 'digital': '#64b5f6'},     # Blue shades
-            'Sun-kissed': {'both': '#e65100', 'digital': '#ffb74d'}   # Orange shades
+            'Mighty': {'direct': '#0a3d2e', 'both': '#0f4c3a', 'digital': '#5a8f7b'},      # Green shades
+            'Phoenix': {'direct': '#0d47a1', 'both': '#1565c0', 'digital': '#64b5f6'},     # Blue shades
+            'Sun-kissed': {'direct': '#bf360c', 'both': '#e65100', 'digital': '#ffb74d'}   # Orange shades
         }
 
         # Build x-axis categories: Product + Metric combinations
@@ -2719,33 +2737,50 @@ with tab5:
             x_categories.append(f'{product}<br>Used')
 
         # Prepare data and colors for each location group (percentages)
+        direct_values = []
         both_values = []
         digital_values = []
+        direct_colors = []
         both_colors = []
         digital_colors = []
 
         for product in products_list:
             prod_data = all_products_df[all_products_df['Product'] == product]
-            both_row = prod_data[prod_data['Group'] == 'Both (Direct + Digital)']
-            digital_row = prod_data[prod_data['Group'] == 'Digital Only']
+            direct_row = prod_data[prod_data['Group'] == 'Direct']
+            both_row = prod_data[prod_data['Group'] == 'Digital - Group 1']
+            digital_row = prod_data[prod_data['Group'] == 'Digital - Group 2']
 
-            colors = product_colors.get(product, {'both': '#0f4c3a', 'digital': '#5a8f7b'})
+            colors = product_colors.get(product, {'direct': '#0a3d2e', 'both': '#0f4c3a', 'digital': '#5a8f7b'})
 
             # Heard Of (%)
+            direct_values.append(direct_row['Heard Of (%)'].values[0] if len(direct_row) > 0 else 0)
             both_values.append(both_row['Heard Of (%)'].values[0] if len(both_row) > 0 else 0)
             digital_values.append(digital_row['Heard Of (%)'].values[0] if len(digital_row) > 0 else 0)
+            direct_colors.append(colors['direct'])
             both_colors.append(colors['both'])
             digital_colors.append(colors['digital'])
 
             # Used (%)
+            direct_values.append(direct_row['Used (%)'].values[0] if len(direct_row) > 0 else 0)
             both_values.append(both_row['Used (%)'].values[0] if len(both_row) > 0 else 0)
             digital_values.append(digital_row['Used (%)'].values[0] if len(digital_row) > 0 else 0)
+            direct_colors.append(colors['direct'])
             both_colors.append(colors['both'])
             digital_colors.append(colors['digital'])
 
+        # Add bars for Direct Only
+        fig_overview.add_trace(go.Bar(
+            name='Direct',
+            x=x_categories,
+            y=direct_values,
+            text=[f"{v:.1f}%" for v in direct_values],
+            textposition='outside',
+            marker_color=direct_colors
+        ))
+
         # Add bars for Both (Direct + Digital)
         fig_overview.add_trace(go.Bar(
-            name='Both (Direct + Digital)',
+            name='Digital - Group 1',
             x=x_categories,
             y=both_values,
             text=[f"{v:.1f}%" for v in both_values],
@@ -2755,7 +2790,7 @@ with tab5:
 
         # Add bars for Digital Only
         fig_overview.add_trace(go.Bar(
-            name='Digital Only',
+            name='Digital - Group 2',
             x=x_categories,
             y=digital_values,
             text=[f"{v:.1f}%" for v in digital_values],
@@ -2791,7 +2826,7 @@ with tab5:
     )
 
     product_config = product_info[selected_product]
-    metrics_df, df_both, df_digital = calculate_location_metrics(df_tab5, product_config)
+    metrics_df, df_direct, df_both, df_digital = calculate_location_metrics(df_tab5, product_config)
 
     if not metrics_df.empty:
         # Expanded Analysis: Other Yetagon Products Awareness
@@ -2812,14 +2847,15 @@ with tab5:
         other_products_data = []
 
         for col, label in other_products.items():
+            direct_pct = (df_direct[col] == 1.0).sum() / len(df_direct) * 100 if col in df_direct.columns and len(df_direct) > 0 else 0
             both_pct = (df_both[col] == 1.0).sum() / len(df_both) * 100 if col in df_both.columns and len(df_both) > 0 else 0
             digital_pct = (df_digital[col] == 1.0).sum() / len(df_digital) * 100 if col in df_digital.columns and len(df_digital) > 0 else 0
 
             other_products_data.append({
                 'Product': label,
-                'Both (Direct + Digital)': both_pct,
-                'Digital Only': digital_pct,
-                'Difference': both_pct - digital_pct
+                'Direct': direct_pct,
+                'Digital - Group 1': both_pct,
+                'Digital - Group 2': digital_pct
             })
 
         other_products_df = pd.DataFrame(other_products_data)
@@ -2828,19 +2864,28 @@ with tab5:
         fig_other_products = go.Figure()
 
         fig_other_products.add_trace(go.Bar(
-            name='Both (Direct + Digital)',
+            name='Direct',
             x=other_products_df['Product'],
-            y=other_products_df['Both (Direct + Digital)'],
-            text=[f"{v:.1f}%" for v in other_products_df['Both (Direct + Digital)']],
+            y=other_products_df['Direct'],
+            text=[f"{v:.1f}%" for v in other_products_df['Direct']],
+            textposition='outside',
+            marker_color='#0a3d2e'
+        ))
+
+        fig_other_products.add_trace(go.Bar(
+            name='Digital - Group 1',
+            x=other_products_df['Product'],
+            y=other_products_df['Digital - Group 1'],
+            text=[f"{v:.1f}%" for v in other_products_df['Digital - Group 1']],
             textposition='outside',
             marker_color='#0f4c3a'
         ))
 
         fig_other_products.add_trace(go.Bar(
-            name='Digital Only',
+            name='Digital - Group 2',
             x=other_products_df['Product'],
-            y=other_products_df['Digital Only'],
-            text=[f"{v:.1f}%" for v in other_products_df['Digital Only']],
+            y=other_products_df['Digital - Group 2'],
+            text=[f"{v:.1f}%" for v in other_products_df['Digital - Group 2']],
             textposition='outside',
             marker_color='#8fc1e3'
         ))
@@ -2899,7 +2944,7 @@ with tab5:
         fig_brands = go.Figure()
 
         fig_brands.add_trace(go.Bar(
-            name='Both (Direct + Digital)',
+            name='Digital - Group 1',
             x=brand_df['Brand'],
             y=brand_df['Both (Direct + Digital)'],
             text=[f"{v:.1f}%" for v in brand_df['Both (Direct + Digital)']],
@@ -2908,7 +2953,7 @@ with tab5:
         ))
 
         fig_brands.add_trace(go.Bar(
-            name='Digital Only',
+            name='Digital - Group 2',
             x=brand_df['Brand'],
             y=brand_df['Digital Only'],
             text=[f"{v:.1f}%" for v in brand_df['Digital Only']],
