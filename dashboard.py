@@ -9,8 +9,7 @@ from platform_helper import create_platform_analysis
 st.set_page_config(page_title='Survey Demographics Dashboard', layout='wide')
 
 # Load data
-# Data version: 2026-01-15-v2 (Q09 column mappings fixed)
-@st.cache_data
+@st.cache_data(ttl=60)  # Cache expires after 60 seconds to ensure fresh data
 def load_data():
     # Load cleaned FY26 data from /clean folder
     df_fy26 = pd.read_csv('clean/CLEAN_FY26.csv')
